@@ -46,6 +46,17 @@ export default function Watch(props: { name: string }) {
 		usePlayer()?.play().catch(setError)
 	}
 
+	const handlePlayPause = async () => {
+		const player = usePlayer();
+		if (!player) return;
+
+		try {
+		  await player.play();
+		} catch (error) {
+		  setError();
+		}
+	  };
+
 	// The JSON catalog for debugging.
 	const catalog = createMemo(() => {
 		const player = usePlayer()
@@ -115,6 +126,7 @@ export default function Watch(props: { name: string }) {
 						<input type="checkbox" checked={mute()} onChange={handleMuteChange} />
 						<span>Mute</span>
 					</label>
+					<button onClick={handlePlayPause}>{"Play/Pause"}</button>
 				</div>
 			</div>
 			<h3>Debug</h3>

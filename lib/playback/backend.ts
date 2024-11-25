@@ -71,6 +71,10 @@ export default class Backend {
 		await this.#audio?.context.resume()
 	}
 
+	async pause() {
+		await this.#audio?.context.suspend()
+	}
+
 	init(init: Init) {
 		this.send({ init })
 	}

@@ -31,13 +31,16 @@ export class Player {
 	#tracksByName: Map<string, Catalog.Track>
 	#tracknum: number
 	#audioTrackName: string
+	#videoTrackName: string
 	#muted: boolean
+	#paused: boolean
 
 	// Running is a promise that resolves when the player is closed.
 	// #close is called with no error, while #abort is called with an error.
 	#running: Promise<void>
 	#close!: () => void
 	#abort!: (err: Error) => void
+	#trackTasks: Map<string, Promise<void>> = new Map()
 
 	private constructor(connection: Connection, catalog: Catalog.Root, backend: Backend, tracknum: number) {
 		this.#connection = connection
@@ -46,7 +49,10 @@ export class Player {
 		this.#backend = backend
 		this.#tracknum = tracknum
 		this.#audioTrackName = ""
+		this.#videoTrackName = ""
 		this.#muted = false
+		this.#paused = false
+
 
 		const abort = new Promise<void>((resolve, reject) => {
 			this.#close = resolve
@@ -54,7 +60,12 @@ export class Player {
 		})
 
 		// Async work
-		this.#running = Promise.race([this.#run(), abort]).catch(this.#close)
+		this.#running = abort.catch(this.#close)
+
+		this.#run().catch((err) => {
+			console.error('Error in #run():', err)
+			this.#abort(err)
+		})
 	}
 
 	static async create(config: PlayerConfig, tracknum: number): Promise<Player> {
@@ -87,7 +98,11 @@ export class Player {
 		await Promise.all(Array.from(inits).map((init) => this.#runInit(...init)))
 
 		// Call #runTrack on each track
-		await Promise.all(tracks.map((track) => this.#runTrack(track)))
+		tracks.forEach((track) => {
+			this.#runTrack(track).catch((err) => {
+				console.error(`Error in #runTrack for track ${track.name}:`, err)
+			})
+		})
 	}
 
 	async #runInit(namespace: string, name: string) {
@@ -107,18 +122,29 @@ export class Player {
 		}
 	}
 
-	async #runTrack(track: Catalog.Track) {
+	async #trackTask(track: Catalog.Track) {
 		if (!track.namespace) throw new Error("track has no namespace")
+
+		if (this.#paused) return;
 
 		const kind = Catalog.isVideoTrack(track) ? "video" : Catalog.isAudioTrack(track) ? "audio" : "unknown"
 		if (kind == "audio" && this.#muted) return
 
 		const sub = await this.#connection.subscribe(track.namespace, track.name)
 
+		if (kind == "audio") {
+			// Save ref to last audio track we subscribed to for unmuting
+			this.#audioTrackName = track.name
+		}
+
+		if (kind == "video") {
+			this.#videoTrackName = track.name
+		}
+
 		try {
 			for (;;) {
 				const segment = await Promise.race([sub.data(), this.#running])
-				if (!segment) break
+				if (!segment) continue
 
 				if (!(segment instanceof GroupReader)) {
 					throw new Error(`expected group reader for segment: ${track.name}`)
@@ -130,11 +156,6 @@ export class Player {
 
 				if (!track.initTrack) {
 					throw new Error(`no init track for segment: ${track.name}`)
-				}
-
-				if (kind == "audio") {
-					// Save ref to last audio track we subscribed to for unmuting
-					this.#audioTrackName = track.name
 				}
 
 				const [buffer, stream] = segment.stream.release()
@@ -154,6 +175,22 @@ export class Player {
 		}
 	}
 
+	async #runTrack(track: Catalog.Track) {
+		if (this.#trackTasks.has(track.name)) {
+			console.warn(`Already exist a runTrack task for the track: ${track.name}`)
+			return
+		}
+
+		const task = (async () => this.#trackTask(track))()
+
+		this.#trackTasks.set(track.name, task)
+
+		task.finally(() => {
+			this.#trackTasks.delete(track.name)
+		})
+
+	}
+
 	getCatalog() {
 		return this.#catalog
 	}
@@ -169,6 +206,10 @@ export class Player {
 
 	getVideoTracks() {
 		return this.#catalog.tracks.filter(Catalog.isVideoTrack).map((track) => track.name)
+	}
+
+	getAudioTracks() {
+		return this.#catalog.tracks.filter(Catalog.isAudioTrack).map((track) => track.name)
 	}
 
 	async switchTrack(trackname: string) {
@@ -192,11 +233,29 @@ export class Player {
 			console.log("Subscribing to audio track: ", this.#audioTrackName)
 			const audioTrack = this.#tracksByName.get(this.#audioTrackName)
 			audioTrack && (await this.#runTrack(audioTrack))
+			this.#backend.pause()
 		}
 	}
 
 	async unsubscribeFromTrack(trackname: string) {
+		console.log(`Unsubscribing from track: ${trackname}`)
 		await this.#connection.unsubscribe(trackname)
+		const task = this.#trackTasks.get(trackname)
+		if (task) {
+			await task
+		}
+	}
+
+	async subscribeFromTrackName(trackname: string) {
+		console.log(`Subscribing to track: ${trackname}`)
+		const track = this.#tracksByName.get(trackname)
+		if (track) {
+			this.#runTrack(track).catch((err) => {
+				console.error(`Error to subscribe to track ${trackname}:`, err)
+			})
+		} else {
+			console.warn(`Track ${trackname} not in #tracksByName`)
+		}
 	}
 
 	#onMessage(msg: Message.FromWorker) {
@@ -232,7 +291,18 @@ export class Player {
 	*/
 
 	async play() {
-		await this.#backend.play()
+		if (this.#paused){
+			this.#paused = false
+			this.subscribeFromTrackName(this.#videoTrackName)
+			this.subscribeFromTrackName(this.#audioTrackName)
+			this.#backend.play()
+		}
+		else {
+			this.unsubscribeFromTrack(this.#videoTrackName)
+			this.unsubscribeFromTrack(this.#audioTrackName)
+			this.#backend.pause()
+			this.#paused = true
+		}
 	}
 
 	/*
