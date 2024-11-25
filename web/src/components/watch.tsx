@@ -10,7 +10,7 @@ export default function Watch(props: { name: string }) {
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
 	const server = params.server ?? import.meta.env.PUBLIC_RELAY_HOST
-	let tracknum: number = params.track ?? 0
+	let tracknum: number = Number(params.track ?? 0)
 
 	const [error, setError] = createSignal<Error | undefined>()
 
@@ -19,7 +19,8 @@ export default function Watch(props: { name: string }) {
 	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
 	const [showCatalog, setShowCatalog] = createSignal(false)
 
-	const [options, setOptions] = createSignal([])
+	const [options, setOptions] = createSignal<string[]>([])
+	const [mute, setMute] = createSignal<boolean>(false)
 	const [selectedOption, setSelectedOption] = createSignal<string | undefined>()
 
 	createEffect(() => {
@@ -54,17 +55,17 @@ export default function Watch(props: { name: string }) {
 		return JSON.stringify(catalog, null, 2)
 	})
 
-	function updateURLWithTracknumber(trackIndex) {
+	function updateURLWithTracknumber(trackIndex: number) {
 		const url = new URL(window.location.href)
-		url.searchParams.set('track', trackIndex.toString())
-		window.history.replaceState({}, '', decodeURIComponent(url.toString()))
+		url.searchParams.set("track", trackIndex.toString())
+		window.history.replaceState({}, "", decodeURIComponent(url.toString()))
 	}
 
-	createEffect(async () => {
+	createEffect(() => {
 		const player = usePlayer()
 		if (!player) return
 
-		const videotracks = await player.getVideoTracks()
+		const videotracks = player.getVideoTracks()
 		setOptions(videotracks)
 
 		if (tracknum >= 0 && tracknum < videotracks.length) {
@@ -72,13 +73,12 @@ export default function Watch(props: { name: string }) {
 			setSelectedOption(selectedTrack)
 			updateURLWithTracknumber(tracknum)
 		}
-
 	})
 
-	const handleOptionSelectChange = (event) => {
-		const selectedTrack = event.target.value
+	const handleOptionSelectChange = (event: Event) => {
+		const selectedTrack = (event.target as HTMLSelectElement).value
 		setSelectedOption(selectedTrack)
-		usePlayer()?.switchTrack(selectedTrack)
+		void usePlayer()?.switchTrack(selectedTrack)
 
 		const videotracks = options()
 		const trackIndex = videotracks.indexOf(selectedTrack)
@@ -87,9 +87,14 @@ export default function Watch(props: { name: string }) {
 		if (trackIndex !== -1) {
 			updateURLWithTracknumber(trackIndex)
 		}
-
 	}
 
+	const handleMuteChange = (event: Event) => {
+		const muteValue = (event.target as HTMLInputElement).checked
+
+		setMute(muteValue)
+		void usePlayer()?.mute(muteValue)
+	}
 
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
@@ -97,18 +102,20 @@ export default function Watch(props: { name: string }) {
 		<>
 			<Fail error={error()} />
 			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
-			<div class="mt-2 flex">
-				<select value={selectedOption() ?? ''} onChange={handleOptionSelectChange}>
-					{options()?.length ? (
-						options().map((option, index) => (
-							<option key={index} value={option}>
-								{option}
-							</option>
-						))
-					) : (
-						<option disabled>No options available</option>
-					)}
-				</select>
+			<div class="mt-4 flex flex-col space-y-4">
+				<div class="flex items-center space-x-4">
+					<select value={selectedOption() ?? ''} onChange={handleOptionSelectChange}>
+						{options()?.length ? (
+							options().map((option) => <option value={option}>{option}</option>)
+						) : (
+							<option disabled>No options available</option>
+						)}
+					</select>
+					<label class="flex items-center space-x-2">
+						<input type="checkbox" checked={mute()} onChange={handleMuteChange} />
+						<span>Mute</span>
+					</label>
+				</div>
 			</div>
 			<h3>Debug</h3>
 			<Show when={catalog()}>

@@ -28,7 +28,10 @@ export class Player {
 
 	#connection: Connection
 	#catalog: Catalog.Root
+	#tracksByName: Map<string, Catalog.Track>
 	#tracknum: number
+	#audioTrackName: string
+	#muted: boolean
 
 	// Running is a promise that resolves when the player is closed.
 	// #close is called with no error, while #abort is called with an error.
@@ -39,8 +42,11 @@ export class Player {
 	private constructor(connection: Connection, catalog: Catalog.Root, backend: Backend, tracknum: number) {
 		this.#connection = connection
 		this.#catalog = catalog
+		this.#tracksByName = new Map(catalog.tracks.map((track) => [track.name, track]))
 		this.#backend = backend
 		this.#tracknum = tracknum
+		this.#audioTrackName = ""
+		this.#muted = false
 
 		const abort = new Promise<void>((resolve, reject) => {
 			this.#close = resolve
@@ -103,6 +109,10 @@ export class Player {
 
 	async #runTrack(track: Catalog.Track) {
 		if (!track.namespace) throw new Error("track has no namespace")
+
+		const kind = Catalog.isVideoTrack(track) ? "video" : Catalog.isAudioTrack(track) ? "audio" : "unknown"
+		if (kind == "audio" && this.#muted) return
+
 		const sub = await this.#connection.subscribe(track.namespace, track.name)
 
 		try {
@@ -114,13 +124,17 @@ export class Player {
 					throw new Error(`expected group reader for segment: ${track.name}`)
 				}
 
-				const kind = Catalog.isVideoTrack(track) ? "video" : Catalog.isAudioTrack(track) ? "audio" : "unknown"
 				if (kind == "unknown") {
 					throw new Error(`unknown track kind: ${track.name}`)
 				}
 
 				if (!track.initTrack) {
 					throw new Error(`no init track for segment: ${track.name}`)
+				}
+
+				if (kind == "audio") {
+					// Save ref to last audio track we subscribed to for unmuting
+					this.#audioTrackName = track.name
 				}
 
 				const [buffer, stream] = segment.stream.release()
@@ -168,6 +182,17 @@ export class Player {
 		this.#tracknum = this.#catalog.tracks.findIndex((track) => track.name === trackname)
 		const tracksToStream = this.#catalog.tracks.filter((track) => track.name === trackname)
 		await Promise.all(tracksToStream.map((track) => this.#runTrack(track)))
+	}
+
+	async mute(isMuted: boolean) {
+		if (isMuted) {
+			console.log("Unsubscribing from audio track: ", this.#audioTrackName)
+			await this.unsubscribeFromTrack(this.#audioTrackName)
+		} else {
+			console.log("Subscribing to audio track: ", this.#audioTrackName)
+			const audioTrack = this.#tracksByName.get(this.#audioTrackName)
+			audioTrack && (await this.#runTrack(audioTrack))
+		}
 	}
 
 	async unsubscribeFromTrack(trackname: string) {
