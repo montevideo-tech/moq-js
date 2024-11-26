@@ -40,6 +40,11 @@ export class Renderer {
 		this.#run().catch(console.error)
 	}
 
+	pause() {
+		console.log("pause")
+		this.#waitingForKeyframe = true
+	}
+
 	async #run() {
 		const reader = this.#timeline.frames.pipeThrough(this.#queue).getReader()
 		for (;;) {

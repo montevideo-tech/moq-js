@@ -53,7 +53,6 @@ export class Player {
 		this.#muted = false
 		this.#paused = false
 
-
 		const abort = new Promise<void>((resolve, reject) => {
 			this.#close = resolve
 			this.#abort = reject
@@ -63,7 +62,7 @@ export class Player {
 		this.#running = abort.catch(this.#close)
 
 		this.#run().catch((err) => {
-			console.error('Error in #run():', err)
+			console.error("Error in #run():", err)
 			this.#abort(err)
 		})
 	}
@@ -125,7 +124,7 @@ export class Player {
 	async #trackTask(track: Catalog.Track) {
 		if (!track.namespace) throw new Error("track has no namespace")
 
-		if (this.#paused) return;
+		if (this.#paused) return
 
 		const kind = Catalog.isVideoTrack(track) ? "video" : Catalog.isAudioTrack(track) ? "audio" : "unknown"
 		if (kind == "audio" && this.#muted) return
@@ -188,7 +187,6 @@ export class Player {
 		task.finally(() => {
 			this.#trackTasks.delete(track.name)
 		})
-
 	}
 
 	getCatalog() {
@@ -291,13 +289,12 @@ export class Player {
 	*/
 
 	async play() {
-		if (this.#paused){
+		if (this.#paused) {
 			this.#paused = false
 			this.subscribeFromTrackName(this.#videoTrackName)
 			this.subscribeFromTrackName(this.#audioTrackName)
 			this.#backend.play()
-		}
-		else {
+		} else {
 			this.unsubscribeFromTrack(this.#videoTrackName)
 			this.unsubscribeFromTrack(this.#audioTrackName)
 			this.#backend.pause()
