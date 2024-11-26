@@ -16,7 +16,7 @@ export default function Watch(props: { name: string }) {
 
 	let canvas!: HTMLCanvasElement
 
-	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
+	const [player, setPlayer] = createSignal<Player | undefined>()
 	const [showCatalog, setShowCatalog] = createSignal(false)
 
 	const [options, setOptions] = createSignal<string[]>([])
@@ -35,23 +35,23 @@ export default function Watch(props: { name: string }) {
 	})
 
 	createEffect(() => {
-		const player = usePlayer()
-		if (!player) return
+		const playerInstance = player()
+		if (!playerInstance) return
 
-		onCleanup(() => player.close())
-		player.closed().then(setError).catch(setError)
+		onCleanup(() => playerInstance.close())
+		playerInstance.closed().then(setError).catch(setError)
 	})
 
 	const play = () => {
-		usePlayer()?.play().catch(setError)
+		player()?.play().catch(setError)
 	}
 
 	// The JSON catalog for debugging.
 	const catalog = createMemo(() => {
-		const player = usePlayer()
-		if (!player) return
+		const playerInstance = player()
+		if (!playerInstance) return
 
-		const catalog = player.getCatalog()
+		const catalog = playerInstance.getCatalog()
 		return JSON.stringify(catalog, null, 2)
 	})
 
@@ -62,10 +62,10 @@ export default function Watch(props: { name: string }) {
 	}
 
 	createEffect(() => {
-		const player = usePlayer()
-		if (!player) return
+		const playerInstance = player()
+		if (!playerInstance) return
 
-		const videotracks = player.getVideoTracks()
+		const videotracks = playerInstance.getVideoTracks()
 		setOptions(videotracks)
 
 		if (tracknum >= 0 && tracknum < videotracks.length) {
@@ -78,7 +78,7 @@ export default function Watch(props: { name: string }) {
 	const handleOptionSelectChange = (event: Event) => {
 		const selectedTrack = (event.target as HTMLSelectElement).value
 		setSelectedOption(selectedTrack)
-		void usePlayer()?.switchTrack(selectedTrack)
+		void player()?.switchTrack(selectedTrack)
 
 		const videotracks = options()
 		const trackIndex = videotracks.indexOf(selectedTrack)
@@ -93,7 +93,7 @@ export default function Watch(props: { name: string }) {
 		const muteValue = (event.target as HTMLInputElement).checked
 
 		setMute(muteValue)
-		void usePlayer()?.mute(muteValue)
+		void player()?.mute(muteValue)
 	}
 
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
@@ -104,7 +104,7 @@ export default function Watch(props: { name: string }) {
 			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
 			<div class="mt-4 flex flex-col space-y-4">
 				<div class="flex items-center space-x-4">
-					<select value={selectedOption() ?? ''} onChange={handleOptionSelectChange}>
+					<select value={selectedOption() ?? ""} onChange={handleOptionSelectChange}>
 						{options()?.length ? (
 							options().map((option) => <option value={option}>{option}</option>)
 						) : (
