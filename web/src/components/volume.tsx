@@ -16,8 +16,8 @@ export const VolumeButton = (props: VolumeButtonProps) => {
 	return (
 		<button
 			class="
-				absolute bottom-4 right-4 flex h-4 w-0 items-center justify-center rounded bg-black/70 p-4
-				text-white shadow-lg hover:bg-black/80
+				flex h-4 w-0 items-center justify-center rounded bg-transparent
+				p-4 text-white hover:bg-black/80
 				focus:bg-black/80 focus:outline-none
 			"
 			onClick={toggleMute}

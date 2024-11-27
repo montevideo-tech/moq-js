@@ -4,21 +4,19 @@ import Fail from "./fail"
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { VolumeButton } from "./volume"
 import { PlayButton } from "./play-button"
+import { TrackSelect } from "./track-select"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
 	const server = params.server ?? import.meta.env.PUBLIC_RELAY_HOST
-	let tracknum: number = Number(params.track ?? 0)
+	const tracknum: number = Number(params.track ?? 0)
 	let canvas!: HTMLCanvasElement
 
 	const [error, setError] = createSignal<Error | undefined>()
 	const [player, setPlayer] = createSignal<Player | undefined>()
 	const [showCatalog, setShowCatalog] = createSignal(false)
-
-	const [options, setOptions] = createSignal<string[]>([])
-	const [selectedOption, setSelectedOption] = createSignal<string | undefined>()
 
 	createEffect(() => {
 		const namespace = props.name
@@ -47,6 +45,14 @@ export default function Watch(props: { name: string }) {
 		player()?.mute(state).catch(setError)
 	}
 
+	const switchTrack = (track: string) => {
+		void player()?.switchTrack(track)
+	}
+
+	const getVideoTracks = (): string[] | undefined => {
+		return player()?.getVideoTracks()
+	}
+
 	// The JSON catalog for debugging.
 	const catalog = createMemo(() => {
 		const playerInstance = player()
@@ -56,40 +62,6 @@ export default function Watch(props: { name: string }) {
 		return JSON.stringify(catalog, null, 2)
 	})
 
-	function updateURLWithTracknumber(trackIndex: number) {
-		const url = new URL(window.location.href)
-		url.searchParams.set("track", trackIndex.toString())
-		window.history.replaceState({}, "", decodeURIComponent(url.toString()))
-	}
-
-	createEffect(() => {
-		const playerInstance = player()
-		if (!playerInstance) return
-
-		const videotracks = playerInstance.getVideoTracks()
-		setOptions(videotracks)
-
-		if (tracknum >= 0 && tracknum < videotracks.length) {
-			const selectedTrack = videotracks[tracknum]
-			setSelectedOption(selectedTrack)
-			updateURLWithTracknumber(tracknum)
-		}
-	})
-
-	const handleOptionSelectChange = (event: Event) => {
-		const selectedTrack = (event.target as HTMLSelectElement).value
-		setSelectedOption(selectedTrack)
-		void player()?.switchTrack(selectedTrack)
-
-		const videotracks = options()
-		const trackIndex = videotracks.indexOf(selectedTrack)
-		tracknum = trackIndex
-
-		if (trackIndex !== -1) {
-			updateURLWithTracknumber(trackIndex)
-		}
-	}
-
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
 	return (
@@ -98,17 +70,9 @@ export default function Watch(props: { name: string }) {
 			<div class="relative aspect-video w-full">
 				<canvas ref={canvas} onClick={play} class="h-full w-full rounded-lg" />
 				<PlayButton play={play} />
-				<VolumeButton mute={mute} />
-			</div>
-			<div class="mt-4 flex flex-col space-y-4">
-				<div class="flex items-center space-x-4">
-					<select value={selectedOption() ?? ""} onChange={handleOptionSelectChange}>
-						{options()?.length ? (
-							options().map((option) => <option value={option}>{option}</option>)
-						) : (
-							<option disabled>No options available</option>
-						)}
-					</select>
+				<div class="absolute bottom-4 right-4 flex h-[40px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
+					<VolumeButton mute={mute} />
+					<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
 				</div>
 			</div>
 			<h3>Debug</h3>
