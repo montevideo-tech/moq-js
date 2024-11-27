@@ -3,6 +3,7 @@ import { Player } from "@kixelated/moq/playback"
 import Fail from "./fail"
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { VolumeButton } from "./volume"
+import { PlayButton } from "./play-button"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -96,6 +97,7 @@ export default function Watch(props: { name: string }) {
 			<Fail error={error()} />
 			<div class="relative aspect-video w-full">
 				<canvas ref={canvas} onClick={play} class="h-full w-full rounded-lg" />
+				<PlayButton play={play} />
 				<VolumeButton mute={mute} />
 			</div>
 			<div class="mt-4 flex flex-col space-y-4">
