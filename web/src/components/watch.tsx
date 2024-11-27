@@ -1,9 +1,8 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
-
 import Fail from "./fail"
-
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { VolumeButton } from "./volume"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -11,16 +10,13 @@ export default function Watch(props: { name: string }) {
 	const params = Object.fromEntries(urlSearchParams.entries())
 	const server = params.server ?? import.meta.env.PUBLIC_RELAY_HOST
 	let tracknum: number = Number(params.track ?? 0)
-
-	const [error, setError] = createSignal<Error | undefined>()
-
 	let canvas!: HTMLCanvasElement
 
+	const [error, setError] = createSignal<Error | undefined>()
 	const [player, setPlayer] = createSignal<Player | undefined>()
 	const [showCatalog, setShowCatalog] = createSignal(false)
 
 	const [options, setOptions] = createSignal<string[]>([])
-	const [mute, setMute] = createSignal<boolean>(false)
 	const [selectedOption, setSelectedOption] = createSignal<string | undefined>()
 
 	createEffect(() => {
@@ -44,6 +40,10 @@ export default function Watch(props: { name: string }) {
 
 	const play = () => {
 		player()?.play().catch(setError)
+	}
+
+	const mute = (state: boolean) => {
+		player()?.mute(state).catch(setError)
 	}
 
 	// The JSON catalog for debugging.
@@ -89,19 +89,15 @@ export default function Watch(props: { name: string }) {
 		}
 	}
 
-	const handleMuteChange = (event: Event) => {
-		const muteValue = (event.target as HTMLInputElement).checked
-
-		setMute(muteValue)
-		void player()?.mute(muteValue)
-	}
-
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
 	return (
 		<>
 			<Fail error={error()} />
-			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
+			<div class="relative aspect-video w-full">
+				<canvas ref={canvas} onClick={play} class="h-full w-full rounded-lg" />
+				<VolumeButton mute={mute} />
+			</div>
 			<div class="mt-4 flex flex-col space-y-4">
 				<div class="flex items-center space-x-4">
 					<select value={selectedOption() ?? ""} onChange={handleOptionSelectChange}>
@@ -111,10 +107,6 @@ export default function Watch(props: { name: string }) {
 							<option disabled>No options available</option>
 						)}
 					</select>
-					<label class="flex items-center space-x-2">
-						<input type="checkbox" checked={mute()} onChange={handleMuteChange} />
-						<span>Mute</span>
-					</label>
 				</div>
 			</div>
 			<h3>Debug</h3>
