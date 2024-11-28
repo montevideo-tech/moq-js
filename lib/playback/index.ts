@@ -98,9 +98,7 @@ export class Player {
 
 		// Call #runTrack on each track
 		tracks.forEach((track) => {
-			this.#runTrack(track).catch((err) => {
-				console.error(`Error in #runTrack for track ${track.name}:`, err)
-			})
+			this.#runTrack(track)
 		})
 	}
 
@@ -174,7 +172,7 @@ export class Player {
 		}
 	}
 
-	async #runTrack(track: Catalog.Track) {
+	#runTrack(track: Catalog.Track) {
 		if (this.#trackTasks.has(track.name)) {
 			console.warn(`Already exist a runTrack task for the track: ${track.name}`)
 			return
@@ -184,7 +182,9 @@ export class Player {
 
 		this.#trackTasks.set(track.name, task)
 
-		task.finally(() => {
+		task.catch((err) => {
+			console.error(`Error to subscribe to track ${track.name}`, err)
+		}).finally(() => {
 			this.#trackTasks.delete(track.name)
 		})
 	}
@@ -212,6 +212,10 @@ export class Player {
 
 	async switchTrack(trackname: string) {
 		const currentTrack = this.getCurrentTrack()
+		if (this.#paused) {
+			this.#videoTrackName = trackname
+			return
+		}
 		if (currentTrack) {
 			console.log(`Unsubscribing from track: ${currentTrack.name} and Subscribing to track: ${trackname}`)
 			await this.unsubscribeFromTrack(currentTrack.name)
@@ -224,14 +228,15 @@ export class Player {
 	}
 
 	async mute(isMuted: boolean) {
+		this.#muted = isMuted
 		if (isMuted) {
 			console.log("Unsubscribing from audio track: ", this.#audioTrackName)
 			await this.unsubscribeFromTrack(this.#audioTrackName)
+			await this.#backend.mute()
 		} else {
 			console.log("Subscribing to audio track: ", this.#audioTrackName)
-			const audioTrack = this.#tracksByName.get(this.#audioTrackName)
-			audioTrack && (await this.#runTrack(audioTrack))
-			this.#backend.pause()
+			this.subscribeFromTrackName(this.#audioTrackName)
+			await this.#backend.unmute()
 		}
 	}
 
@@ -244,13 +249,11 @@ export class Player {
 		}
 	}
 
-	async subscribeFromTrackName(trackname: string) {
+	subscribeFromTrackName(trackname: string) {
 		console.log(`Subscribing to track: ${trackname}`)
 		const track = this.#tracksByName.get(trackname)
 		if (track) {
-			this.#runTrack(track).catch((err) => {
-				console.error(`Error to subscribe to track ${trackname}:`, err)
-			})
+			this.#runTrack(track)
 		} else {
 			console.warn(`Track ${trackname} not in #tracksByName`)
 		}
@@ -292,11 +295,14 @@ export class Player {
 		if (this.#paused) {
 			this.#paused = false
 			this.subscribeFromTrackName(this.#videoTrackName)
-			this.subscribeFromTrackName(this.#audioTrackName)
-			this.#backend.play()
+			if (!this.#muted) {
+				this.subscribeFromTrackName(this.#audioTrackName)
+				await this.#backend.unmute()
+			}
 		} else {
-			this.unsubscribeFromTrack(this.#videoTrackName)
-			this.unsubscribeFromTrack(this.#audioTrackName)
+			await this.unsubscribeFromTrack(this.#videoTrackName)
+			await this.unsubscribeFromTrack(this.#audioTrackName)
+			await this.#backend.mute()
 			this.#backend.pause()
 			this.#paused = true
 		}
