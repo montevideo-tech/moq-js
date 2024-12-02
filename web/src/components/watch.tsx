@@ -17,6 +17,8 @@ export default function Watch(props: { name: string }) {
 	const [error, setError] = createSignal<Error | undefined>()
 	const [player, setPlayer] = createSignal<Player | undefined>()
 	const [showCatalog, setShowCatalog] = createSignal(false)
+	const [hovered, setHovered] = createSignal(false)
+	const [showControls, setShowControls] = createSignal(true)
 
 	createEffect(() => {
 		const namespace = props.name
@@ -27,14 +29,6 @@ export default function Watch(props: { name: string }) {
 		const fingerprint = server.startsWith("localhost") ? `https://${server}/fingerprint` : undefined
 
 		Player.create({ url, fingerprint, canvas, namespace }, tracknum).then(setPlayer).catch(setError)
-	})
-
-	createEffect(() => {
-		const playerInstance = player()
-		if (!playerInstance) return
-
-		onCleanup(() => playerInstance.close())
-		playerInstance.closed().then(setError).catch(setError)
 	})
 
 	const play = () => {
@@ -62,17 +56,47 @@ export default function Watch(props: { name: string }) {
 		return JSON.stringify(catalog, null, 2)
 	})
 
+	createEffect(() => {
+		const playerInstance = player()
+		if (!playerInstance) return
+
+		onCleanup(() => playerInstance.close())
+		playerInstance.closed().then(setError).catch(setError)
+	})
+
+	createEffect(() => {
+		if (hovered()) {
+			setShowControls(true)
+			return
+		}
+
+		const timeoutId = setTimeout(() => setShowControls(false), 3000)
+		onCleanup(() => clearTimeout(timeoutId))
+	})
+
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
 	return (
 		<>
 			<Fail error={error()} />
 			<div class="relative aspect-video w-full">
-				<canvas ref={canvas} onClick={play} class="h-full w-full rounded-lg" />
-				<PlayButton play={play} />
-				<div class="absolute bottom-4 right-4 flex h-[40px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
-					<VolumeButton mute={mute} />
-					<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
+				<canvas
+					ref={canvas}
+					onClick={play}
+					class="h-full w-full rounded-lg"
+					onMouseEnter={() => setHovered(true)}
+					onMouseLeave={() => setHovered(false)}
+				/>
+				<div
+					class={`mr-px-4 ml-px-4 ${
+						showControls() ? "opacity-100" : "opacity-0"
+					} absolute bottom-4 flex h-[40px] w-[100%] items-center gap-[4px] rounded transition-opacity duration-200 `}
+				>
+					<PlayButton play={play} />
+					<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
+						<VolumeButton mute={mute} />
+						<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
+					</div>
 				</div>
 			</div>
 			<h3>Debug</h3>
