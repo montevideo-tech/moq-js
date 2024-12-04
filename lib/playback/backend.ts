@@ -67,7 +67,15 @@ export default class Backend {
 		this.send({ config: msg }, msg.video.canvas)
 	}
 
-	async play() {
+	pause() {
+		this.send({ pause: true })
+	}
+
+	async mute() {
+		await this.#audio?.context.suspend()
+	}
+
+	async unmute() {
 		await this.#audio?.context.resume()
 	}
 

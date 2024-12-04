@@ -31,10 +31,6 @@ export default function Watch(props: { name: string }) {
 		Player.create({ url, fingerprint, canvas, namespace }, tracknum).then(setPlayer).catch(setError)
 	})
 
-	const play = () => {
-		player()?.play().catch(setError)
-	}
-
 	const mute = (state: boolean) => {
 		player()?.mute(state).catch(setError)
 	}
@@ -45,6 +41,13 @@ export default function Watch(props: { name: string }) {
 
 	const getVideoTracks = (): string[] | undefined => {
 		return player()?.getVideoTracks()
+	}
+
+	const handlePlayPause = () => {
+		const playerInstance = player()
+		if (!playerInstance) return
+
+		player()?.play().catch(setError)
 	}
 
 	// The JSON catalog for debugging.
@@ -82,7 +85,7 @@ export default function Watch(props: { name: string }) {
 			<div class="relative aspect-video w-full">
 				<canvas
 					ref={canvas}
-					onClick={play}
+					onClick={handlePlayPause}
 					class="h-full w-full rounded-lg"
 					onMouseEnter={() => setHovered(true)}
 					onMouseLeave={() => setHovered(false)}
@@ -92,7 +95,7 @@ export default function Watch(props: { name: string }) {
 						showControls() ? "opacity-100" : "opacity-0"
 					} absolute bottom-4 flex h-[40px] w-[100%] items-center gap-[4px] rounded transition-opacity duration-200 `}
 				>
-					<PlayButton play={play} />
+					<PlayButton play={handlePlayPause} />
 					<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
 						<VolumeButton mute={mute} />
 						<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />

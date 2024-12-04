@@ -30,6 +30,8 @@ class Worker {
 			this.#onInit(msg.init)
 		} else if (msg.segment) {
 			this.#onSegment(msg.segment).catch(console.warn)
+		} else if (msg.pause) {
+			this.#onPause(msg.pause)
 		} else {
 			throw new Error(`unknown message: + ${JSON.stringify(msg)}`)
 		}
@@ -99,6 +101,12 @@ class Worker {
 
 		// We done.
 		await segment.close()
+	}
+
+	#onPause(pause: boolean) {
+		if (this.#video && pause) {
+			this.#video.pause()
+		}
 	}
 }
 
