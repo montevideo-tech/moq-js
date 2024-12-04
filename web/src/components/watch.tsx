@@ -16,6 +16,7 @@ export default function Watch(props: { name: string }) {
 
 	const [error, setError] = createSignal<Error | undefined>()
 	const [player, setPlayer] = createSignal<Player | undefined>()
+	const [isPlaying, setIsPlaying] = createSignal(!player()?.isPaused())
 	const [showCatalog, setShowCatalog] = createSignal(false)
 	const [hovered, setHovered] = createSignal(false)
 	const [showControls, setShowControls] = createSignal(true)
@@ -47,7 +48,17 @@ export default function Watch(props: { name: string }) {
 		const playerInstance = player()
 		if (!playerInstance) return
 
-		player()?.play().catch(setError)
+		if (playerInstance.isPaused()) {
+			playerInstance
+				.play()
+				.then(() => setIsPlaying(true))
+				.catch(setError)
+		} else {
+			playerInstance
+				.play()
+				.then(() => setIsPlaying(false))
+				.catch(setError)
+		}
 	}
 
 	// The JSON catalog for debugging.
@@ -95,7 +106,7 @@ export default function Watch(props: { name: string }) {
 						showControls() ? "opacity-100" : "opacity-0"
 					} absolute bottom-4 flex h-[40px] w-[100%] items-center gap-[4px] rounded transition-opacity duration-200 `}
 				>
-					<PlayButton play={handlePlayPause} />
+					<PlayButton onClick={handlePlayPause} isPlaying={isPlaying()} />
 					<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
 						<VolumeButton mute={mute} />
 						<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
