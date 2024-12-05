@@ -1,27 +1,25 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { Player } from "@kixelated/moq/playback"
-
 import Fail from "./fail"
-
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { VolumeButton } from "./volume"
+import { PlayButton } from "./play-button"
+import { TrackSelect } from "./track-select"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
 	const urlSearchParams = new URLSearchParams(window.location.search)
 	const params = Object.fromEntries(urlSearchParams.entries())
 	const server = params.server ?? import.meta.env.PUBLIC_RELAY_HOST
-	let tracknum: number = Number(params.track ?? 0)
-
-	const [error, setError] = createSignal<Error | undefined>()
-
+	const tracknum: number = Number(params.track ?? 0)
 	let canvas!: HTMLCanvasElement
 
-	const [usePlayer, setPlayer] = createSignal<Player | undefined>()
+	const [error, setError] = createSignal<Error | undefined>()
+	const [player, setPlayer] = createSignal<Player | undefined>()
+	const [isPlaying, setIsPlaying] = createSignal(!player()?.isPaused())
 	const [showCatalog, setShowCatalog] = createSignal(false)
-
-	const [options, setOptions] = createSignal<string[]>([])
-	const [mute, setMute] = createSignal<boolean>(false)
-	const [selectedOption, setSelectedOption] = createSignal<string | undefined>()
+	const [hovered, setHovered] = createSignal(false)
+	const [showControls, setShowControls] = createSignal(true)
 
 	createEffect(() => {
 		const namespace = props.name
@@ -34,99 +32,85 @@ export default function Watch(props: { name: string }) {
 		Player.create({ url, fingerprint, canvas, namespace }, tracknum).then(setPlayer).catch(setError)
 	})
 
-	createEffect(() => {
-		const player = usePlayer()
-		if (!player) return
-
-		onCleanup(() => player.close())
-		player.closed().then(setError).catch(setError)
-	})
-
-	const play = () => {
-		usePlayer()?.play().catch(setError)
+	const mute = (state: boolean) => {
+		player()?.mute(state).catch(setError)
 	}
 
-	const handlePlayPause = async () => {
-		const player = usePlayer();
-		if (!player) return;
+	const switchTrack = (track: string) => {
+		void player()?.switchTrack(track)
+	}
 
-		try {
-		  await player.play();
-		} catch (error) {
-		  setError();
+	const getVideoTracks = (): string[] | undefined => {
+		return player()?.getVideoTracks()
+	}
+
+	const handlePlayPause = () => {
+		const playerInstance = player()
+		if (!playerInstance) return
+
+		if (playerInstance.isPaused()) {
+			playerInstance
+				.play()
+				.then(() => setIsPlaying(true))
+				.catch(setError)
+		} else {
+			playerInstance
+				.play()
+				.then(() => setIsPlaying(false))
+				.catch(setError)
 		}
-	  };
+	}
 
 	// The JSON catalog for debugging.
 	const catalog = createMemo(() => {
-		const player = usePlayer()
-		if (!player) return
+		const playerInstance = player()
+		if (!playerInstance) return
 
-		const catalog = player.getCatalog()
+		const catalog = playerInstance.getCatalog()
 		return JSON.stringify(catalog, null, 2)
 	})
 
-	function updateURLWithTracknumber(trackIndex: number) {
-		const url = new URL(window.location.href)
-		url.searchParams.set("track", trackIndex.toString())
-		window.history.replaceState({}, "", decodeURIComponent(url.toString()))
-	}
-
 	createEffect(() => {
-		const player = usePlayer()
-		if (!player) return
+		const playerInstance = player()
+		if (!playerInstance) return
 
-		const videotracks = player.getVideoTracks()
-		setOptions(videotracks)
-
-		if (tracknum >= 0 && tracknum < videotracks.length) {
-			const selectedTrack = videotracks[tracknum]
-			setSelectedOption(selectedTrack)
-			updateURLWithTracknumber(tracknum)
-		}
+		onCleanup(() => playerInstance.close())
+		playerInstance.closed().then(setError).catch(setError)
 	})
 
-	const handleOptionSelectChange = (event: Event) => {
-		const selectedTrack = (event.target as HTMLSelectElement).value
-		setSelectedOption(selectedTrack)
-		void usePlayer()?.switchTrack(selectedTrack)
-
-		const videotracks = options()
-		const trackIndex = videotracks.indexOf(selectedTrack)
-		tracknum = trackIndex
-
-		if (trackIndex !== -1) {
-			updateURLWithTracknumber(trackIndex)
+	createEffect(() => {
+		if (hovered()) {
+			setShowControls(true)
+			return
 		}
-	}
 
-	const handleMuteChange = (event: Event) => {
-		const muteValue = (event.target as HTMLInputElement).checked
-
-		setMute(muteValue)
-		void usePlayer()?.mute(muteValue)
-	}
+		const timeoutId = setTimeout(() => setShowControls(false), 3000)
+		onCleanup(() => clearTimeout(timeoutId))
+	})
 
 	// NOTE: The canvas automatically has width/height set to the decoded video size.
 	// TODO shrink it if needed via CSS
 	return (
 		<>
 			<Fail error={error()} />
-			<canvas ref={canvas} onClick={play} class="aspect-video w-full rounded-lg" />
-			<div class="mt-4 flex flex-col space-y-4">
-				<div class="flex items-center space-x-4">
-					<select value={selectedOption() ?? ''} onChange={handleOptionSelectChange}>
-						{options()?.length ? (
-							options().map((option) => <option value={option}>{option}</option>)
-						) : (
-							<option disabled>No options available</option>
-						)}
-					</select>
-					<label class="flex items-center space-x-2">
-						<input type="checkbox" checked={mute()} onChange={handleMuteChange} />
-						<span>Mute</span>
-					</label>
-					<button onClick={handlePlayPause}>{"Play/Pause"}</button>
+			<div class="relative aspect-video w-full">
+				<canvas
+					ref={canvas}
+					onClick={handlePlayPause}
+					class="h-full w-full rounded-lg"
+					onMouseEnter={() => setHovered(true)}
+					onMouseLeave={() => setHovered(false)}
+				/>
+				<div
+					class={`mr-px-4 ml-px-4 ${
+						showControls() ? "opacity-100" : "opacity-0"
+					} absolute bottom-4 flex h-[40px] w-[100%] items-center gap-[4px] rounded transition-opacity duration-200 `}
+				>
+					<PlayButton onClick={handlePlayPause} isPlaying={isPlaying()} />
+					<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
+						<VolumeButton mute={mute} />
+						<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
+					</div>
 				</div>
 			</div>
 			<h3>Debug</h3>
