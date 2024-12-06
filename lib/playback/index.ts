@@ -210,6 +210,10 @@ export default class Player {
 		return this.#catalog.tracks.filter(Catalog.isAudioTrack).map((track) => track.name)
 	}
 
+	isPaused() {
+		return this.#paused
+	}
+
 	async switchTrack(trackname: string) {
 		const currentTrack = this.getCurrentTrack()
 		if (this.#paused) {
