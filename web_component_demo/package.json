@@ -1,0 +1,15 @@
+{
+  "name": "web_component_demo",
+  "version": "1.0.0",
+  "description": "Demo to run web component demo for issue \\#10 . Should be deleted before merging",
+  "main": "index.js",
+  "devDependencies": {
+    "vite": "^6.0.3"
+  },
+  "scripts": {
+	"build": "tsc -b",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
