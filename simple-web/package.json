@@ -2,6 +2,7 @@
 	"name": "simple-moq-web",
 	"version": "1.0.0",
 	"scripts": {
+		"build": "echo 'No build required'",
 		"start": "node index.js",
 		"dev": "nodemon index.js"
 	},
