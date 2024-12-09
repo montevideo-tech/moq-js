@@ -8,9 +8,13 @@
 	<body>
 		<script type="module" src="/src/main.ts"></script>
 
+		<h1>Web Component Example</h1>
 		<!-- Using the custom player component -->
 		<player-component
-			src="https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+			src="https://localhost:4443"
+			fingerprint="https://localhost:4443/fingerprint"
+			namespace="bbb"
+			controls="true"
 		></player-component>
 	</body>
 </html>
