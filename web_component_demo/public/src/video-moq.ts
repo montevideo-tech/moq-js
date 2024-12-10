@@ -81,7 +81,7 @@ class VideoMoq extends HTMLElement {
 		const fingerprint = this.getAttribute("fingerprint");
 
 		if (!src) {
-			this.error("No 'src' attribute provided for <player-component>");
+			this.error("No 'src' attribute provided for <video-moq>");
 		}
 		if (src === null || namespace === null || fingerprint === null) return;
 
@@ -456,5 +456,5 @@ const PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" f
 					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
 				</svg>`;
 // Register the custom element
-customElements.define("player-component", VideoMoq);
+customElements.define("video-moq", VideoMoq);
 export default VideoMoq;
