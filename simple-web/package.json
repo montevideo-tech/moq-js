@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"scripts": {
 		"build": "echo 'No build required'",
+		"lint": "echo 'No lint configured'",
 		"start": "node index.js",
 		"dev": "nodemon index.js"
 	},
