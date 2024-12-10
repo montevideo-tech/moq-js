@@ -1,5 +1,12 @@
 import { Player } from "@kixelated/moq/playback";
 
+/**
+ * This stylesheet is self contained within the shadow root
+ * If we attach the element as open in the constructor, it should inherit
+ * the document's style.
+ */
+import STYLE_SHEET from "./video-moq.css?inline";
+
 class VideoMoq extends HTMLElement {
 	private shadow: ShadowRoot;
 
@@ -30,7 +37,7 @@ class VideoMoq extends HTMLElement {
 		// Attach Shadow DOM
 		this.shadow = this.attachShadow({ mode: "open" });
 		this.shadow.innerHTML = `
-			${STYLE}
+			<style>${STYLE_SHEET}</style>
 			<div id="base" class="relative">
 				<canvas id="canvas" style="z-index: 0; background: rgb(28,28,28)" class="h-full w-full rounded-lg">
 				</canvas>
@@ -276,210 +283,6 @@ class VideoMoq extends HTMLElement {
 		console.error(msg);
 	}
 }
-
-// There may be some repeated stuff here. I just copied from
-// each element in dev tools and cleaned up some classes.
-// Feel free to modify.
-/**
- * This stylesheet is self contained within the shadow root
- * If we attach the element as open in the constructor, it should inherit
- * the document's style.
- */
-const STYLE = `<style>
-	.w-full {
-		width: 100%;
-	}
-	.h-full {
-		height: 100%;
-	}
-
-	.aspect-video {
-		aspect-ratio: 16 / 9;
-	}
-
-	.relative {
-		position: relative;
-	}
-	.absolute {
-		position: absolute;
-	}
-
-	#controls button {
-		cursor: pointer;
-	}
-	#controls ul > li {
-		cursor: pointer;
-	}
-
-	.rounded-lg {
-    	border-radius: 0.5rem;
-	}
-
-	.duration-200 {
-		transition-duration: 200ms;
-	}
-
-	.transition-opacity {
-		transition-property: opacity;
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 150ms;
-	}
-	.opacity-0 {
-		opacity: 0;
-	}
-	.opacity-100 {
-		opacity: 100;
-	}
-	.rounded {
-		border-radius: 0.25rem;
-	}
-	.gap-\[4px\] {
-		gap: 4px;
-	}
-	.items-center {
-		align-items: center;
-	}
-	.h-\[40px\] {
-		height: 40px;
-	}
-	.flex {
-		display: flex;
-	}
-	.bottom-4 {
-		bottom: 1rem;
-	}
-
-	.shadow-lg {
-		--tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-		--tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
-		box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-	}
-	.py-2 {
-		padding-top: 0.5rem;
-		padding-bottom: 0.5rem;
-	}
-	.px-2 {
-		padding-left: 0.5rem;
-		padding-right: 0.5rem;
-	}
-
-	.py-4 {
-		padding-top: 1rem;
-		padding-bottom: 1rem;
-	}
-	.px-4 {
-		padding-left: 1rem;
-		padding-right: 1rem;
-	}
-
-	.rounded {
-		border-radius: 0.25rem;
-	}
-	.justify-center {
-		justify-content: center;
-	}
-	.w-12 {
-		width: 3rem;
-	}
-	.h-8 {
-		height: 2rem;
-	}
-	.left-4 {
-		left: 1rem;
-	}
-	.right-4 {
-		right: 1rem;
-	}
-	.bottom-0 {
-		bottom: 0px;
-	}
-	.p-2 {
-		padding: 0.5rem;
-	}
-
-	.bg-black-70 {
-		background-color: rgb(0 0 0 / 0.7);
-	}
-	.bg-black-80 {
-		background-color: rgb(0 0 0 / 0.8);
-	}
-	.bg-black-100 {
-		background-color: rgb(0 0 0);
-	}
-	.bg-blue-500 {
-	    --tw-bg-opacity: 1;
-    	background-color: rgb(59 130 246 / var(--tw-bg-opacity));
-	}
-	.rounded {
-		border-radius: 0.25rem;
-	}
-	.gap-\[4px\] {
-		gap: 4px;
-	}
-	.justify-evenly {
-		justify-content: space-evenly;
-	}
-	.w-fit {
-		width: -moz-fit-content;
-		width: fit-content;
-	}
-	.h-\[32px\] {
-		height: 32px;
-	}
-	.text-white {
-		--tw-text-opacity: 1;
-		color: rgb(255 255 255 / var(--tw-text-opacity));
-	}
-	.p-4 {
-		padding: 1rem;
-	}
-	.bg-transparent {
-		background-color: transparent;
-	}
-	.rounded {
-		border-radius: 0.25rem;
-	}
-	.justify-center {
-		justify-content: center;
-	}
-	.w-0 {
-		width: 0px;
-	}
-	.h-4 {
-		height: 1rem;
-	}
-
-.shadow-lg {
-    --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
-    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-}
-.text-white {
-    --tw-text-opacity: 1;
-    color: rgb(255 255 255 / var(--tw-text-opacity));
-}
-.p-0 {
-    padding: 0px;
-}
-.rounded {
-    border-radius: 0.25rem;
-}
-.w-40 {
-    width: 10rem;
-}
-.mt-2 {
-    margin-top: 0.5rem;
-}
-.right-0 {
-    right: 0px;
-}
-.bottom-6 {
-    bottom: 1.5rem;
-}
-	 .justify-between {
-    justify-content: space-between;
-}
-</style>`;
 
 const PLAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
 					<path d="M3 22v-20l18 10-18 10z" />
