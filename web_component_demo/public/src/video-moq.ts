@@ -11,6 +11,7 @@ class VideoMoq extends HTMLElement {
 	private toggleShowTrackEventHandler: (event: Event) => void;
 
 	// HTML Elements
+	private base: HTMLDivElement;
 	private canvas: HTMLCanvasElement;
 	private playButton: HTMLButtonElement;
 	private controls: HTMLElement;
@@ -30,7 +31,7 @@ class VideoMoq extends HTMLElement {
 		this.shadow = this.attachShadow({ mode: "open" });
 		this.shadow.innerHTML = `
 			${STYLE}
-			<div style="position: relative" class="aspect-video w-full">
+			<div id="base" class="relative">
 				<canvas id="canvas" style="z-index: 0; background: rgb(28,28,28)" class="h-full w-full rounded-lg">
 				</canvas>
 					<div id="controls" style="z-index: 10; position: absolute; margin-right: 4px; margin-left: 4px;" class="opacity-100 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
@@ -51,6 +52,7 @@ class VideoMoq extends HTMLElement {
 			</div>
 		`;
 
+		this.base = this.shadow.querySelector("#base")!;
 		this.controls = this.shadow.querySelector("#controls")!;
 		this.canvas = this.shadow.querySelector("canvas#canvas")!;
 		this.playButton = this.shadow.querySelector("#play")!;
@@ -105,6 +107,20 @@ class VideoMoq extends HTMLElement {
 			this.controls.addEventListener("mouseleave", this.onMouseLeaveHandler);
 
 			this.trackButton.addEventListener("click", this.toggleShowTrackEventHandler);
+		}
+
+		const width = this.parseDimension(this.getAttribute("width"), -1);
+		const height = this.parseDimension(this.getAttribute("height"), -1);
+
+		if (width != -1) {
+			this.base.style.width = width.toString() + "px";
+		}
+		if (height != -1) {
+			this.base.style.height = height.toString() + "px";
+		}
+		const aspectRatio = this.getAttribute("aspect-ratio"); // TODO: We could also get this from the player
+		if (aspectRatio !== null) {
+			this.base.style.aspectRatio = aspectRatio.toString();
 		}
 	}
 
@@ -231,6 +247,22 @@ class VideoMoq extends HTMLElement {
 
 		this.selectedTrack = name;
 		this.player?.switchTrack(name);
+	}
+
+	private parseDimension(value: string | null, defaultValue: number): number {
+		if (!value) {
+			return defaultValue;
+		}
+
+		const parsed = parseInt(value, 10);
+
+		// Check for NaN or negative values
+		if (isNaN(parsed) || parsed <= 0) {
+			console.warn(`Invalid value "${value}" for dimension, using default: ${defaultValue}px`);
+			return defaultValue;
+		}
+
+		return parsed;
 	}
 
 	// TODO: (?) Handle Stream ended event. May not be necessary, it came in the example.
