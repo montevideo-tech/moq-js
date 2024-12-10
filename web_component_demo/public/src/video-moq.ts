@@ -7,6 +7,13 @@ import { Player } from "@kixelated/moq/playback";
  */
 import STYLE_SHEET from "./video-moq.css?inline";
 
+const PLAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
+					<path d="M3 22v-20l18 10-18 10z" />
+				</svg>`;
+const PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-6 w-6">
+					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+				</svg>`;
+
 class VideoMoq extends HTMLElement {
 	private shadow: ShadowRoot;
 
@@ -39,9 +46,9 @@ class VideoMoq extends HTMLElement {
 		this.shadow.innerHTML = `
 			<style>${STYLE_SHEET}</style>
 			<div id="base" class="relative">
-				<canvas id="canvas" style="z-index: 0; background: rgb(28,28,28)" class="h-full w-full rounded-lg">
+				<canvas id="canvas" class="h-full w-full rounded-lg">
 				</canvas>
-					<div id="controls" style="z-index: 10; position: absolute; margin-right: 4px; margin-left: 4px;" class="opacity-100 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
+					<div id="controls" class="absolute mr-4 ml-4 opacity-100 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
 						<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
 							${PLAY_SVG}
 						</button>
@@ -150,8 +157,9 @@ class VideoMoq extends HTMLElement {
 		this.player?.close();
 	}
 
-	// attributeChangedCallbackCalled when one of the element's watched attributes change. For an attribute to be watched, you must add it to the component class's static observedAttributes property.
 	// TODO: Move attribute processing to a function and add this.
+	// Called when one of the element's watched attributes change. For an attribute to be watched, you must add it to the component class's static observedAttributes property.
+	// attributeChangedCallback() {}
 
 	/**
 	 * Sets the player attribute and configures info related to a successful connection
@@ -272,7 +280,7 @@ class VideoMoq extends HTMLElement {
 		return parsed;
 	}
 
-	// TODO: (?) Handle Stream ended event. May not be necessary, it came in the example.
+	// TODO: (?) Handle Stream ended event. May not be necessary, it came w/ the example.
 	// private onStreamEnded() {
 	// 	this.playButton.disabled = false;
 	// }
@@ -284,12 +292,6 @@ class VideoMoq extends HTMLElement {
 	}
 }
 
-const PLAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
-					<path d="M3 22v-20l18 10-18 10z" />
-				</svg>`;
-const PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-6 w-6">
-					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-				</svg>`;
 // Register the custom element
 customElements.define("video-moq", VideoMoq);
 export default VideoMoq;
