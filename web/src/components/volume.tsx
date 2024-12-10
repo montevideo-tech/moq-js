@@ -8,6 +8,7 @@ type VolumeControlProps = {
 export const VolumeControl = (props: VolumeControlProps) => {
 	const [isMuted, setIsMuted] = createSignal(false)
 	const [currentVolume, setCurrentVolume] = createSignal(1)
+	const [previousVolume, setPreviousVolume] = createSignal(1)
 
 	const toggleMute = () => {
 		const newIsMuted = !isMuted()
@@ -15,11 +16,13 @@ export const VolumeControl = (props: VolumeControlProps) => {
 		props.mute(newIsMuted)
 
 		if (newIsMuted) {
+			setPreviousVolume(currentVolume())
 			props.setVolume(0)
 			setCurrentVolume(0)
 		} else {
-			props.setVolume(1)
-			setCurrentVolume(1)
+			const restoredVolume = previousVolume()
+			setCurrentVolume(restoredVolume)
+			props.setVolume(restoredVolume)
 		}
 	}
 
