@@ -303,12 +303,13 @@ export class Player {
 				this.subscribeFromTrackName(this.#audioTrackName)
 				await this.#backend.unmute()
 			}
+			this.#backend.play()
 		} else {
+			this.#paused = true
+			this.#backend.pause()
 			await this.unsubscribeFromTrack(this.#videoTrackName)
 			await this.unsubscribeFromTrack(this.#audioTrackName)
 			await this.#backend.mute()
-			this.#backend.pause()
-			this.#paused = true
 		}
 	}
 
