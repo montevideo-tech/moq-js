@@ -87,8 +87,8 @@ class VideoMoq extends HTMLElement {
 	 * Called when the element is first added to the DOM
 	 *
 	 * Here we handle attributes.
-	 * Right now we support: src fingerprint controls namespace
-	 * TODO: To be supported: width height autoplay muted poster
+	 * Right now we support: src fingerprint controls namespace width height
+	 * TODO: To be supported: autoplay muted poster
 	 * @returns
 	 */
 	connectedCallback() {
@@ -215,18 +215,26 @@ class VideoMoq extends HTMLElement {
 	// Play / Pause
 	private togglePlayPause() {
 		this.playButton.disabled = true;
-		this.player
-			?.play()
-			.then(() => {
-				if (this.player?.isPaused()) {
+
+		(this.player?.isPaused() ? this.play() : this.pause()).finally(() => (this.playButton.disabled = false));
+	}
+
+	public play(): Promise<void> {
+		return this.player
+			? this.player.play().then(() => {
 					this.playButton.innerHTML = PLAY_SVG;
 					this.playButton.ariaLabel = "Play";
-				} else {
+			  })
+			: Promise.resolve();
+	}
+
+	public pause(): Promise<void> {
+		return this.player
+			? this.player.pause().then(() => {
 					this.playButton.innerHTML = PAUSE_SVG;
 					this.playButton.ariaLabel = "Pause";
-				}
-			})
-			.finally(() => (this.playButton.disabled = false));
+			  })
+			: Promise.resolve();
 	}
 
 	private toggleMute() {

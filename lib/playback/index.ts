@@ -295,6 +295,15 @@ export class Player {
 	}
 	*/
 
+	// Added this to divide play and pause into two different functions
+	async togglePlayPause() {
+		if (this.#paused) {
+			this.play()
+		} else {
+			this.pause()
+		}
+	}
+
 	async play() {
 		if (this.#paused) {
 			this.#paused = false
@@ -303,7 +312,11 @@ export class Player {
 				this.subscribeFromTrackName(this.#audioTrackName)
 				await this.#backend.unmute()
 			}
-		} else {
+		}
+	}
+
+	async pause() {
+		if (!this.#paused) {
 			await this.unsubscribeFromTrack(this.#videoTrackName)
 			await this.unsubscribeFromTrack(this.#audioTrackName)
 			await this.#backend.mute()
