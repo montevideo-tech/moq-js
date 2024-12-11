@@ -36,6 +36,15 @@ class VideoMoq extends HTMLElement {
 	// State
 	private player: Player | null = null;
 
+	get muted(): boolean {
+		return this.player ? this.player.muted : false;
+	}
+
+	set muted(mute: boolean) {
+		if (mute) this.mute();
+		else this.unmute();
+	}
+
 	get selectedTrack(): string {
 		return this.player ? this.player.videoTrackName : "";
 	}
@@ -50,7 +59,7 @@ class VideoMoq extends HTMLElement {
 			<div id="base" class="relative">
 				<canvas id="canvas" class="h-full w-full rounded-lg">
 				</canvas>
-					<div id="controls" class="absolute mr-4 ml-4 opacity-100 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
+					<div id="controls" class="absolute opacity-0 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
 						<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
 							${PLAY_SVG}
 						</button>
@@ -140,10 +149,10 @@ class VideoMoq extends HTMLElement {
 			.then((player) => this.setPlayer(player))
 			.catch(this.error);
 
-		this.canvas.addEventListener("click", this.playPauseEventHandler);
-
 		const controls = this.getAttribute("controls");
 		if (controls !== null) {
+			this.canvas.addEventListener("click", this.playPauseEventHandler);
+
 			this.playButton.addEventListener("click", this.playPauseEventHandler);
 
 			this.volumeButton.addEventListener("click", this.toggleMuteEventHandler);
@@ -154,6 +163,8 @@ class VideoMoq extends HTMLElement {
 			this.controls.addEventListener("mouseleave", this.onMouseLeaveHandler);
 
 			this.trackButton.addEventListener("click", this.toggleShowTrackEventHandler);
+		} else {
+			this.controls.remove();
 		}
 
 		const width = this.parseDimension(this.getAttribute("width"), -1);
@@ -224,17 +235,26 @@ class VideoMoq extends HTMLElement {
 
 	private toggleMute() {
 		this.volumeButton.disabled = true;
-		this.player
-			?.mute(this.isMuted)
-			.then(() => {
-				// This is unintuitive but you should read it as if it wasMuted
-				if (this.isMuted) {
-					this.volumeButton.ariaLabel = "Mute";
-					this.volumeButton.innerText = "🔇";
-					this.isMuted = false;
-				} else {
+		(this.muted ? this.unmute() : this.mute()).finally(() => (this.volumeButton.disabled = false));
+	}
+
+	public unmute(): Promise<void> {
+		return this.player
+			? this.player.mute(false).then(() => {
 					this.volumeButton.ariaLabel = "Mute";
 					this.volumeButton.innerText = "🔊";
+			  })
+			: Promise.resolve();
+	}
+
+	public mute(): Promise<void> {
+		return this.player
+			? this.player.mute(true).then(() => {
+					this.volumeButton.ariaLabel = "Unmute";
+					this.volumeButton.innerText = "🔇";
+			  })
+			: Promise.resolve();
+	}
 
 	#showTracks = false;
 	private toggleShowTracks() {

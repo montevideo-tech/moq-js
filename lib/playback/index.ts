@@ -127,8 +127,6 @@ export class Player {
 		const kind = Catalog.isVideoTrack(track) ? "video" : Catalog.isAudioTrack(track) ? "audio" : "unknown"
 		if (kind == "audio" && this.#muted) return
 
-		const sub = await this.#connection.subscribe(track.namespace, track.name)
-
 		if (kind == "audio") {
 			// Save ref to last audio track we subscribed to for unmuting
 			this.#audioTrackName = track.name
@@ -137,6 +135,8 @@ export class Player {
 		if (kind == "video") {
 			this.#videoTrackName = track.name
 		}
+
+		const sub = await this.#connection.subscribe(track.namespace, track.name)
 
 		try {
 			for (;;) {
@@ -212,6 +212,10 @@ export class Player {
 
 	isPaused() {
 		return this.#paused
+	}
+
+	get muted(): boolean {
+		return this.#muted
 	}
 
 	get videoTrackName(): string {
