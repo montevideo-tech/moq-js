@@ -36,6 +36,14 @@ class VideoMoq extends HTMLElement {
 	// State
 	private player: Player | null = null;
 
+	get src(): string | null {
+		return this.getAttribute("src");
+	}
+
+	set src(val) {
+		this.setAttribute("src", `${val}`);
+	}
+
 	get muted(): boolean {
 		return this.player ? this.player.muted : false;
 	}
@@ -139,13 +147,24 @@ class VideoMoq extends HTMLElement {
 
 	private async load() {
 		this.destroy();
+
+		if (!this.src) {
 			this.error("No 'src' attribute provided for <video-moq>");
+			return;
 		}
-		if (src === null || namespace === null || fingerprint === null) return;
+
+		const url = new URL(this.src);
+
+		const urlParams = new URLSearchParams(url.search);
+		const namespace = urlParams.get("namespace") || this.getAttribute("namespace");
+		const fingerprint = urlParams.get("fingerprint") || this.getAttribute("fingerprint");
+
+		// TODO: Unsure if fingerprint should be optional
+		if (namespace === null || fingerprint === null) return;
 
 		// TODO: make tracknum a parameter somehow
 		const trackNum = 0;
-		Player.create({ url: src, fingerprint, canvas: this.canvas, namespace }, trackNum)
+		Player.create({ url: url.origin, fingerprint, canvas: this.canvas, namespace }, trackNum)
 			.then((player) => this.setPlayer(player))
 			.catch(this.error);
 
