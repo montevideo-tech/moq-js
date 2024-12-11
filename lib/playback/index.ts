@@ -214,6 +214,10 @@ export class Player {
 		return this.#paused
 	}
 
+	get videoTrackName(): string {
+		return this.#videoTrackName
+	}
+
 	async switchTrack(trackname: string) {
 		const currentTrack = this.getCurrentTrack()
 		if (this.#paused) {

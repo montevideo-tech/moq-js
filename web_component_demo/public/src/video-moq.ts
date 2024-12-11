@@ -35,8 +35,10 @@ class VideoMoq extends HTMLElement {
 
 	// State
 	private player: Player | null = null;
-	public isMuted: boolean = true; // TODO: have the player state maintain all values
-	public selectedTrack: string = "0";
+
+	get selectedTrack(): string {
+		return this.player ? this.player.videoTrackName : "";
+	}
 
 	constructor() {
 		super();
@@ -59,7 +61,7 @@ class VideoMoq extends HTMLElement {
 							<button id="track" aria-label="Select Track" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
 								⚙️
 							</button>
-							<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg opacity-0">
+							<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
 							</ul>
 						</div>
 					</div>
@@ -102,6 +104,29 @@ class VideoMoq extends HTMLElement {
 		this.destroy();
 	}
 
+	/**
+	 * Sets the player attribute and configures info related to a successful connection
+	 * */
+	private setPlayer(player: Player) {
+		this.player = player;
+
+		if (!this.player.isPaused()) {
+			this.playButton.innerHTML = PAUSE_SVG;
+			this.playButton.ariaLabel = "Pause";
+
+			// TODO: Seems like I have to wait till subscriptions are done to automute and/or autoplay
+			// const automute = this.getAttribute("muted");
+			// if (automute !== null && automute) {
+			// 	this.mute();
+			// }
+
+			// Correct the icon if not muted
+			if (!this.muted) {
+				this.volumeButton.ariaLabel = "Mute";
+				this.volumeButton.innerText = "🔊";
+			}
+		}
+	}
 
 	private async load() {
 		this.destroy();
@@ -162,51 +187,6 @@ class VideoMoq extends HTMLElement {
 		this.player?.close();
 	}
 
-	// TODO: Move attribute processing to a function and add this.
-	// Called when one of the element's watched attributes change. For an attribute to be watched, you must add it to the component class's static observedAttributes property.
-	// attributeChangedCallback() {}
-
-	/**
-	 * Sets the player attribute and configures info related to a successful connection
-	 * */
-	private setPlayer(player: Player) {
-		this.player = player;
-
-		if (!this.player.isPaused()) {
-			this.playButton.innerHTML = PAUSE_SVG;
-			this.playButton.ariaLabel = "Pause";
-
-			// TODO: This is a hacky !isMuted()
-			if (this.player.getAudioTracks().length > 0) {
-				this.volumeButton.ariaLabel = "Mute";
-				this.volumeButton.innerText = "🔊";
-				this.isMuted = true;
-			} else {
-				this.isMuted = false;
-			}
-		}
-
-		const options = this.player.getVideoTracks();
-		this.trackList.innerHTML = options
-			.map((option) => {
-				return `<li role="menuitem" tabIndex={0} data-name=${option}
-				class="flex w-full  items-center justify-between px-4 py-2 hover:bg-black-100"
-				 ${this.selectedTrack === option ? "bg-blue-500 text-white" : ""}"
-				 >
-				 <span>${option}</span>
-				 </li>`;
-			})
-			.join("");
-		this.trackList.querySelectorAll("li").forEach((element) => {
-			element.addEventListener("click", () => this.switchTrack(element.dataset.name || null));
-			element.addEventListener("keydown", (e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					this.switchTrack(element.dataset.name || null);
-				}
-			});
-		});
-	}
-
 	private toggleShowControls(show: boolean) {
 		if (show) {
 			this.controls.classList.add("opacity-100");
@@ -255,16 +235,38 @@ class VideoMoq extends HTMLElement {
 				} else {
 					this.volumeButton.ariaLabel = "Mute";
 					this.volumeButton.innerText = "🔊";
-					this.isMuted = true;
-				}
-			})
-			.finally(() => {
-				this.volumeButton.disabled = false;
-			});
-	}
 
+	#showTracks = false;
 	private toggleShowTracks() {
-		this.trackList.classList.toggle("opacity-0");
+		this.#showTracks = !this.#showTracks;
+
+		if (this.#showTracks) {
+			if (this.player) {
+				const options = this.player.getVideoTracks();
+				this.trackList.innerHTML = options
+					.map((option) => {
+						return /*html*/ `<li role="menuitem" tabIndex={0} data-name=${option}
+				class="flex w-full items-center justify-between px-4 py-2 hover:bg-black-100
+				 ${this.selectedTrack === option ? "bg-blue-500 text-white" : ""}"
+				 >
+				 <span>${option}</span>
+				 </li>`;
+					})
+					.join("");
+				this.trackList.querySelectorAll("li").forEach((element) => {
+					element.addEventListener("click", () => this.switchTrack(element.dataset.name || null));
+					element.addEventListener("keydown", (e) => {
+						if (e.key === "Enter" || e.key === " ") {
+							this.switchTrack(element.dataset.name || null);
+						}
+					});
+				});
+			} else {
+				this.trackList.innerHTML = /*html*/ `<li class="flex w-full items-center justify-between cursor-not-allowed px-4 py-2 text-gray-500"><span>No options available</span></li>`;
+			}
+		} else {
+			this.trackList.innerHTML = "";
+		}
 	}
 
 	private switchTrack(name: string | null) {
@@ -273,7 +275,6 @@ class VideoMoq extends HTMLElement {
 			return;
 		}
 
-		this.selectedTrack = name;
 		this.player?.switchTrack(name);
 	}
 

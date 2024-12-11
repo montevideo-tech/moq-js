@@ -31,6 +31,10 @@ canvas#canvas {
 	cursor: pointer;
 }
 
+.cursor-not-allowed {
+	cursor: not-allowed;
+}
+
 .rounded-lg {
 	border-radius: 0.5rem;
 }
@@ -99,9 +103,6 @@ canvas#canvas {
 	margin-left: 1rem;
 }
 
-.rounded {
-	border-radius: 0.25rem;
-}
 .justify-center {
 	justify-content: center;
 }
@@ -137,9 +138,7 @@ canvas#canvas {
 	--tw-bg-opacity: 1;
 	background-color: rgb(59 130 246 / var(--tw-bg-opacity));
 }
-.rounded {
-	border-radius: 0.25rem;
-}
+
 .gap-\[4px\] {
 	gap: 4px;
 }
@@ -153,18 +152,11 @@ canvas#canvas {
 .h-\[32px\] {
 	height: 32px;
 }
-.text-white {
-	--tw-text-opacity: 1;
-	color: rgb(255 255 255 / var(--tw-text-opacity));
-}
 .p-4 {
 	padding: 1rem;
 }
 .bg-transparent {
 	background-color: transparent;
-}
-.rounded {
-	border-radius: 0.25rem;
 }
 .justify-center {
 	justify-content: center;
@@ -185,11 +177,12 @@ canvas#canvas {
 	--tw-text-opacity: 1;
 	color: rgb(255 255 255 / var(--tw-text-opacity));
 }
+.text-gray-500 {
+	--tw-text-opacity: 1;
+	color: rgb(107 114 128 / var(--tw-text-opacity));
+}
 .p-0 {
 	padding: 0px;
-}
-.rounded {
-	border-radius: 0.25rem;
 }
 .w-40 {
 	width: 10rem;
