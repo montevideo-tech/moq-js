@@ -25,13 +25,12 @@ class VideoMoq extends HTMLElement {
 	private toggleShowTrackEventHandler: (event: Event) => void;
 
 	// HTML Elements
-	private base: HTMLDivElement;
-	private canvas: HTMLCanvasElement;
-	private playButton: HTMLButtonElement;
-	private controls: HTMLElement;
-	private volumeButton: HTMLButtonElement;
-	private trackButton: HTMLButtonElement;
-	private trackList: HTMLUListElement;
+	#canvas?: HTMLCanvasElement;
+	#playButton?: HTMLButtonElement;
+	#controls?: HTMLElement;
+	#volumeButton?: HTMLButtonElement;
+	#trackButton?: HTMLButtonElement;
+	#trackList?: HTMLUListElement;
 
 	// State
 	private player: Player | null = null;
@@ -42,6 +41,10 @@ class VideoMoq extends HTMLElement {
 
 	set src(val) {
 		this.setAttribute("src", `${val}`);
+	}
+
+	get controls(): string | null {
+		return this.getAttribute("controls");
 	}
 
 	get muted(): boolean {
@@ -62,36 +65,6 @@ class VideoMoq extends HTMLElement {
 
 		// Attach Shadow DOM
 		this.shadow = this.attachShadow({ mode: "open" });
-		this.shadow.innerHTML = /*html*/ `
-			<style>${STYLE_SHEET}</style>
-			<div id="base" class="relative">
-				<canvas id="canvas" class="h-full w-full rounded-lg">
-				</canvas>
-					<div id="controls" class="absolute opacity-0 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
-						<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
-							${PLAY_SVG}
-						</button>
-						<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black-70 p-2">
-							<button id="volume" aria-label="Unmute" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-80 focus:bg-black-80 focus:outline-none">
-								🔇
-							</button>
-							<button id="track" aria-label="Select Track" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
-								⚙️
-							</button>
-							<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
-							</ul>
-						</div>
-					</div>
-			</div>
-		`;
-
-		this.base = this.shadow.querySelector("#base")!;
-		this.controls = this.shadow.querySelector("#controls")!;
-		this.canvas = this.shadow.querySelector("canvas#canvas")!;
-		this.playButton = this.shadow.querySelector("#play")!;
-		this.volumeButton = this.shadow.querySelector("#volume")!;
-		this.trackButton = this.shadow.querySelector("#track")!;
-		this.trackList = this.shadow.querySelector("ul#tracklist")!;
 
 		// Bind event listeners to add and remove from lists.
 		this.playPauseEventHandler = this.togglePlayPause.bind(this);
@@ -121,15 +94,19 @@ class VideoMoq extends HTMLElement {
 		this.destroy();
 	}
 
+	// TODO: Move attribute processing to a function and add this.
+	// Called when one of the element's watched attributes change. For an attribute to be watched, you must add it to the component class's static observedAttributes property.
+	// attributeChangedCallback() {}
+
 	/**
 	 * Sets the player attribute and configures info related to a successful connection
 	 * */
 	private setPlayer(player: Player) {
 		this.player = player;
 
-		if (!this.player.isPaused()) {
-			this.playButton.innerHTML = PAUSE_SVG;
-			this.playButton.ariaLabel = "Pause";
+		if (!this.player.isPaused() && this.#playButton) {
+			this.#playButton.innerHTML = PAUSE_SVG;
+			this.#playButton.ariaLabel = "Pause";
 
 			// TODO: Seems like I have to wait till subscriptions are done to automute and/or autoplay
 			// const automute = this.getAttribute("muted");
@@ -138,15 +115,26 @@ class VideoMoq extends HTMLElement {
 			// }
 
 			// Correct the icon if not muted
-			if (!this.muted) {
-				this.volumeButton.ariaLabel = "Mute";
-				this.volumeButton.innerText = "🔊";
+			if (!this.muted && this.#volumeButton) {
+				this.#volumeButton.ariaLabel = "Mute";
+				this.#volumeButton.innerText = "🔊";
 			}
 		}
 	}
 
 	private async load() {
 		this.destroy();
+
+		this.shadow.innerHTML = /*html*/ `
+			<style>${STYLE_SHEET}</style>
+			<div id="base" class="relative">
+				<canvas id="canvas" class="h-full w-full rounded-lg">
+				</canvas>
+			</div>
+		`;
+
+		const base: HTMLDivElement = this.shadow.querySelector("#base")!;
+		this.#canvas = this.shadow.querySelector("canvas#canvas")!;
 
 		if (!this.src) {
 			this.error("No 'src' attribute provided for <video-moq>");
@@ -164,81 +152,111 @@ class VideoMoq extends HTMLElement {
 
 		// TODO: make tracknum a parameter somehow
 		const trackNum = 0;
-		Player.create({ url: url.origin, fingerprint, canvas: this.canvas, namespace }, trackNum)
+		Player.create({ url: url.origin, fingerprint, canvas: this.#canvas, namespace }, trackNum)
 			.then((player) => this.setPlayer(player))
 			.catch(this.error);
 
-		const controls = this.getAttribute("controls");
-		if (controls !== null) {
-			this.canvas.addEventListener("click", this.playPauseEventHandler);
+		if (this.controls !== null) {
+			let controlsElement = document.createElement("div");
+			controlsElement.innerHTML = /* html */ `
+			<div id="controls" class="absolute opacity-0 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
+				<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
+					${PLAY_SVG}
+				</button>
+				<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black-70 p-2">
+					<button id="volume" aria-label="Unmute" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-80 focus:bg-black-80 focus:outline-none">
+						🔇
+					</button>
+					<button id="track" aria-label="Select Track" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
+						⚙️
+					</button>
+					<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
+					</ul>
+				</div>
+			</div>`;
+			base.appendChild(controlsElement.children[0]);
 
-			this.playButton.addEventListener("click", this.playPauseEventHandler);
+			this.#controls = this.shadow.querySelector("#controls")!;
+			this.#playButton = this.shadow.querySelector("#play")!;
+			this.#volumeButton = this.shadow.querySelector("#volume")!;
+			this.#trackButton = this.shadow.querySelector("#track")!;
+			this.#trackList = this.shadow.querySelector("ul#tracklist")!;
 
-			this.volumeButton.addEventListener("click", this.toggleMuteEventHandler);
+			this.#canvas.addEventListener("click", this.playPauseEventHandler);
 
-			this.canvas.addEventListener("mouseenter", this.onMouseEnterHandler);
-			this.canvas.addEventListener("mouseleave", this.onMouseLeaveHandler);
-			this.controls.addEventListener("mouseenter", this.onMouseEnterHandler);
-			this.controls.addEventListener("mouseleave", this.onMouseLeaveHandler);
+			this.#playButton.addEventListener("click", this.playPauseEventHandler);
 
-			this.trackButton.addEventListener("click", this.toggleShowTrackEventHandler);
-		} else {
-			this.controls.remove();
+			this.#volumeButton.addEventListener("click", this.toggleMuteEventHandler);
+
+			this.#canvas.addEventListener("mouseenter", this.onMouseEnterHandler);
+			this.#canvas.addEventListener("mouseleave", this.onMouseLeaveHandler);
+			this.#controls.addEventListener("mouseenter", this.onMouseEnterHandler);
+			this.#controls.addEventListener("mouseleave", this.onMouseLeaveHandler);
+
+			this.#trackButton.addEventListener("click", this.toggleShowTrackEventHandler);
 		}
 
 		const width = this.parseDimension(this.getAttribute("width"), -1);
 		const height = this.parseDimension(this.getAttribute("height"), -1);
 
 		if (width != -1) {
-			this.base.style.width = width.toString() + "px";
+			base.style.width = width.toString() + "px";
 		}
 		if (height != -1) {
-			this.base.style.height = height.toString() + "px";
+			base.style.height = height.toString() + "px";
 		}
 		const aspectRatio = this.getAttribute("aspect-ratio"); // TODO: We could also get this from the player
 		if (aspectRatio !== null) {
-			this.base.style.aspectRatio = aspectRatio.toString();
+			base.style.aspectRatio = aspectRatio.toString();
 		}
 	}
 
 	private destroy() {
-		this.canvas.removeEventListener("click", this.playPauseEventHandler);
-		this.playButton.removeEventListener("click", this.playPauseEventHandler);
+		this.#canvas?.removeEventListener("click", this.playPauseEventHandler);
+		this.#playButton?.removeEventListener("click", this.playPauseEventHandler);
 
-		this.volumeButton.removeEventListener("click", this.toggleMuteEventHandler);
+		this.#volumeButton?.removeEventListener("click", this.toggleMuteEventHandler);
 
-		this.canvas.removeEventListener("mouseenter", this.onMouseEnterHandler);
-		this.canvas.removeEventListener("mouseleave", this.onMouseLeaveHandler);
-		this.controls.removeEventListener("mouseenter", this.onMouseEnterHandler);
-		this.controls.removeEventListener("mouseleave", this.onMouseLeaveHandler);
+		this.#canvas?.removeEventListener("mouseenter", this.onMouseEnterHandler);
+		this.#canvas?.removeEventListener("mouseleave", this.onMouseLeaveHandler);
+		this.#controls?.removeEventListener("mouseenter", this.onMouseEnterHandler);
+		this.#controls?.removeEventListener("mouseleave", this.onMouseLeaveHandler);
 
-		this.trackButton.removeEventListener("click", this.toggleShowTrackEventHandler);
+		this.#trackButton?.removeEventListener("click", this.toggleShowTrackEventHandler);
 
 		this.player?.close();
+		this.player = null;
 	}
 
 	private toggleShowControls(show: boolean) {
+		if (!this.#controls) return;
 		if (show) {
-			this.controls.classList.add("opacity-100");
-			this.controls.classList.remove("opacity-0");
+			this.#controls.classList.add("opacity-100");
+			this.#controls.classList.remove("opacity-0");
 		} else {
-			this.controls.classList.add("opacity-0");
-			this.controls.classList.remove("opacity-100");
+			this.#controls.classList.add("opacity-0");
+			this.#controls.classList.remove("opacity-100");
 		}
 	}
 
 	// Play / Pause
 	private togglePlayPause() {
-		this.playButton.disabled = true;
+		if (!this.#playButton) return;
 
-		(this.player?.isPaused() ? this.play() : this.pause()).finally(() => (this.playButton.disabled = false));
+		this.#playButton.disabled = true;
+
+		(this.player?.isPaused() ? this.play() : this.pause()).finally(() => {
+			if (!this.#playButton) return;
+			this.#playButton.disabled = false;
+		});
 	}
 
 	public play(): Promise<void> {
 		return this.player
 			? this.player.play().then(() => {
-					this.playButton.innerHTML = PAUSE_SVG;
-					this.playButton.ariaLabel = "Pause";
+					if (!this.#playButton) return;
+					this.#playButton.innerHTML = PAUSE_SVG;
+					this.#playButton.ariaLabel = "Pause";
 			  })
 			: Promise.resolve();
 	}
@@ -246,22 +264,28 @@ class VideoMoq extends HTMLElement {
 	public pause(): Promise<void> {
 		return this.player
 			? this.player.pause().then(() => {
-					this.playButton.innerHTML = PLAY_SVG;
-					this.playButton.ariaLabel = "Play";
+					if (!this.#playButton) return;
+					this.#playButton.innerHTML = PLAY_SVG;
+					this.#playButton.ariaLabel = "Play";
 			  })
 			: Promise.resolve();
 	}
 
 	private toggleMute() {
-		this.volumeButton.disabled = true;
-		(this.muted ? this.unmute() : this.mute()).finally(() => (this.volumeButton.disabled = false));
+		if (!this.#volumeButton) return;
+		this.#volumeButton.disabled = true;
+		(this.muted ? this.unmute() : this.mute()).finally(() => {
+			if (!this.#volumeButton) return;
+			this.#volumeButton.disabled = false;
+		});
 	}
 
 	public unmute(): Promise<void> {
 		return this.player
 			? this.player.mute(false).then(() => {
-					this.volumeButton.ariaLabel = "Mute";
-					this.volumeButton.innerText = "🔊";
+					if (!this.#volumeButton) return;
+					this.#volumeButton.ariaLabel = "Mute";
+					this.#volumeButton.innerText = "🔊";
 			  })
 			: Promise.resolve();
 	}
@@ -269,20 +293,22 @@ class VideoMoq extends HTMLElement {
 	public mute(): Promise<void> {
 		return this.player
 			? this.player.mute(true).then(() => {
-					this.volumeButton.ariaLabel = "Unmute";
-					this.volumeButton.innerText = "🔇";
+					if (!this.#volumeButton) return;
+					this.#volumeButton.ariaLabel = "Unmute";
+					this.#volumeButton.innerText = "🔇";
 			  })
 			: Promise.resolve();
 	}
 
 	#showTracks = false;
 	private toggleShowTracks() {
+		if (!this.#trackList) return;
 		this.#showTracks = !this.#showTracks;
 
 		if (this.#showTracks) {
 			if (this.player) {
 				const options = this.player.getVideoTracks();
-				this.trackList.innerHTML = options
+				this.#trackList.innerHTML = options
 					.map((option) => {
 						return /*html*/ `<li role="menuitem" tabIndex={0} data-name=${option}
 				class="flex w-full items-center justify-between px-4 py-2 hover:bg-black-100
@@ -292,7 +318,7 @@ class VideoMoq extends HTMLElement {
 				 </li>`;
 					})
 					.join("");
-				this.trackList.querySelectorAll("li").forEach((element) => {
+				this.#trackList.querySelectorAll("li").forEach((element) => {
 					element.addEventListener("click", () => this.switchTrack(element.dataset.name || null));
 					element.addEventListener("keydown", (e) => {
 						if (e.key === "Enter" || e.key === " ") {
@@ -301,10 +327,10 @@ class VideoMoq extends HTMLElement {
 					});
 				});
 			} else {
-				this.trackList.innerHTML = /*html*/ `<li class="flex w-full items-center justify-between cursor-not-allowed px-4 py-2 text-gray-500"><span>No options available</span></li>`;
+				this.#trackList.innerHTML = /*html*/ `<li class="flex w-full items-center justify-between cursor-not-allowed px-4 py-2 text-gray-500"><span>No options available</span></li>`;
 			}
 		} else {
-			this.trackList.innerHTML = "";
+			this.#trackList.innerHTML = "";
 		}
 	}
 
@@ -335,7 +361,7 @@ class VideoMoq extends HTMLElement {
 
 	// TODO: (?) Handle Stream ended event. May not be necessary, it came w/ the example.
 	// private onStreamEnded() {
-	// 	this.playButton.disabled = false;
+	// 	this.#playButton.disabled = false;
 	// }
 
 	/* Right now we are just printing errors, but we could
