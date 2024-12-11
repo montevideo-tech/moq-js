@@ -7,10 +7,10 @@ import { Player } from "@kixelated/moq/playback";
  */
 import STYLE_SHEET from "./video-moq.css?inline";
 
-const PLAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
+const PLAY_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
 					<path d="M3 22v-20l18 10-18 10z" />
 				</svg>`;
-const PAUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-6 w-6">
+const PAUSE_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-6 w-6">
 					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
 				</svg>`;
 
@@ -43,7 +43,7 @@ class VideoMoq extends HTMLElement {
 
 		// Attach Shadow DOM
 		this.shadow = this.attachShadow({ mode: "open" });
-		this.shadow.innerHTML = `
+		this.shadow.innerHTML = /*html*/ `
 			<style>${STYLE_SHEET}</style>
 			<div id="base" class="relative">
 				<canvas id="canvas" class="h-full w-full rounded-lg">
@@ -92,11 +92,19 @@ class VideoMoq extends HTMLElement {
 	 * @returns
 	 */
 	connectedCallback() {
-		const src = this.getAttribute("src");
-		const namespace = this.getAttribute("namespace");
-		const fingerprint = this.getAttribute("fingerprint");
+		this.load();
+	}
 
-		if (!src) {
+	/**
+	 * Called when the element is removed from the DOM
+	 * */
+	disconnectedCallback() {
+		this.destroy();
+	}
+
+
+	private async load() {
+		this.destroy();
 			this.error("No 'src' attribute provided for <video-moq>");
 		}
 		if (src === null || namespace === null || fingerprint === null) return;
@@ -138,10 +146,7 @@ class VideoMoq extends HTMLElement {
 		}
 	}
 
-	/**
-	 * Called when the element is removed from the DOM
-	 * */
-	disconnectedCallback() {
+	private destroy() {
 		this.canvas.removeEventListener("click", this.playPauseEventHandler);
 		this.playButton.removeEventListener("click", this.playPauseEventHandler);
 
@@ -222,8 +227,8 @@ class VideoMoq extends HTMLElement {
 	public play(): Promise<void> {
 		return this.player
 			? this.player.play().then(() => {
-					this.playButton.innerHTML = PLAY_SVG;
-					this.playButton.ariaLabel = "Play";
+					this.playButton.innerHTML = PAUSE_SVG;
+					this.playButton.ariaLabel = "Pause";
 			  })
 			: Promise.resolve();
 	}
@@ -231,8 +236,8 @@ class VideoMoq extends HTMLElement {
 	public pause(): Promise<void> {
 		return this.player
 			? this.player.pause().then(() => {
-					this.playButton.innerHTML = PAUSE_SVG;
-					this.playButton.ariaLabel = "Pause";
+					this.playButton.innerHTML = PLAY_SVG;
+					this.playButton.ariaLabel = "Play";
 			  })
 			: Promise.resolve();
 	}
