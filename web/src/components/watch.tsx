@@ -6,6 +6,7 @@ import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-j
 import { VolumeButton } from "./volume"
 import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
+import { set } from "astro/zod"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -30,7 +31,19 @@ export default function Watch(props: { name: string }) {
 		// TODO remove this when WebTransport correctly supports self-signed certificates
 		const fingerprint = server.startsWith("localhost") ? `https://${server}/fingerprint` : undefined
 
-		Player.create({ url, fingerprint, canvas, namespace }, tracknum).then(setPlayer).catch(setError)
+		Player.create({ url, fingerprint, canvas, namespace }, tracknum)
+			.then((player) => {
+				setPlayer(player)
+				player.addEventListener("play", () => console.log("Recived play event"))
+				player.addEventListener("pause", () => console.log("Recived pause event"))
+				player.addEventListener("loadeddata", () => console.log("Recived loadeddata event"))
+				player.addEventListener("volumechange", () => console.log("Recived volumechange event"))
+				player.addEventListener("unsubscribestared", () => console.log("Recived unsubscribestared event"))
+				player.addEventListener("unsuscribedone", () => console.log("Recived unsuscribedone event"))
+				player.addEventListener("subscribestared", () => console.log("Recived subscribestared event"))
+				player.addEventListener("suscribedone", () => console.log("Recived suscribedone event"))
+			})
+			.catch(setError)
 	})
 
 	const mute = (state: boolean) => {
