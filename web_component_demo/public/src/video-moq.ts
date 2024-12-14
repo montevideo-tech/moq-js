@@ -60,6 +60,12 @@ class VideoMoq extends HTMLElement {
 		return this.player ? this.player.videoTrackName : "";
 	}
 
+	/*
+		HTMLMediaElement's error is of type MediaError, but it only allows read only code and message
+		We could extend it, but it does not seem worth it.
+	*/
+	public error: Error | null = null;
+
 	constructor() {
 		super();
 
@@ -128,6 +134,7 @@ class VideoMoq extends HTMLElement {
 		this.shadow.innerHTML = /*html*/ `
 			<style>${STYLE_SHEET}</style>
 			<div id="base" class="relative">
+				<div id="error"></div>
 				<canvas id="canvas" class="h-full w-full rounded-lg">
 				</canvas>
 			</div>
@@ -137,7 +144,7 @@ class VideoMoq extends HTMLElement {
 		this.#canvas = this.shadow.querySelector("canvas#canvas")!;
 
 		if (!this.src) {
-			this.error("No 'src' attribute provided for <video-moq>");
+			this.fail(new Error("No 'src' attribute provided for <video-moq>"));
 			return;
 		}
 
@@ -154,7 +161,7 @@ class VideoMoq extends HTMLElement {
 		const trackNum: number = this.auxParseInt(trackNumStr, 0);
 		Player.create({ url: url.origin, fingerprint, canvas: this.#canvas, namespace }, trackNum)
 			.then((player) => this.setPlayer(player))
-			.catch(this.error);
+			.catch((e) => this.fail(e));
 
 		if (this.controls !== null) {
 			let controlsElement = document.createElement("div");
@@ -336,7 +343,7 @@ class VideoMoq extends HTMLElement {
 
 	private switchTrack(name: string | null) {
 		if (name === null) {
-			this.error("Could not recognize selected track name");
+			this.error = new Error("Could not recognize selected track name");
 			return;
 		}
 
@@ -364,10 +371,20 @@ class VideoMoq extends HTMLElement {
 	// 	this.#playButton.disabled = false;
 	// }
 
-	/* Right now we are just printing errors, but we could
-	display them on the canvas if we want */
-	private error(msg: any) {
-		console.error(msg);
+	/** Prints error and displays it in a red box */
+	private fail(error?: Error) {
+		console.error("Moq Player failed, please reload", error);
+
+		this.error = error || new Error("Unknown error");
+
+		const errorElement = this.shadow.querySelector("#error");
+
+		if (errorElement) {
+			errorElement.innerHTML = /*html*/ `
+				<div class="my-4 rounded-md bg-red-600 px-4 py-2 text-white">
+					<span class="font-bold">${this.error.name}:</span> ${this.error.message}
+				</div>`;
+		}
 	}
 
 	private auxParseInt(str: string | null, def: number): number {

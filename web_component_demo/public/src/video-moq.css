@@ -29,6 +29,12 @@ canvas#canvas {
 	position: absolute;
 }
 
+.rounded {
+	border-radius: 0.25rem;
+}
+.rounded-md {
+	border-radius: 0.375rem;
+}
 .rounded-lg {
 	border-radius: 0.5rem;
 }
@@ -47,9 +53,6 @@ canvas#canvas {
 }
 .opacity-100 {
 	opacity: 100;
-}
-.rounded {
-	border-radius: 0.25rem;
 }
 .gap-\[4px\] {
 	gap: 4px;
@@ -138,6 +141,10 @@ canvas#canvas {
 .mt-2 {
 	margin-top: 0.5rem;
 }
+.my-4 {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
 
 .justify-center {
 	justify-content: center;
@@ -165,6 +172,10 @@ canvas#canvas {
 .bg-blue-500 {
 	--tw-bg-opacity: 1;
 	background-color: rgb(59 130 246 / var(--tw-bg-opacity));
+}
+.bg-red-600 {
+	--tw-bg-opacity: 1;
+	background-color: rgb(220 38 38 / var(--tw-bg-opacity));
 }
 
 .gap-\[4px\] {
