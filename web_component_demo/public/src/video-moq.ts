@@ -47,6 +47,10 @@ class VideoMoq extends HTMLElement {
 		return this.getAttribute("controls");
 	}
 
+	set controls(val) {
+		this.setAttribute("controls", `${val}`);
+	}
+
 	get muted(): boolean {
 		return this.player ? this.player.muted : false;
 	}
@@ -54,6 +58,16 @@ class VideoMoq extends HTMLElement {
 	set muted(mute: boolean) {
 		if (mute) this.mute();
 		else this.unmute();
+	}
+
+	// this.getAttribute("trackNum")
+
+	get trackNum(): string | null {
+		return this.getAttribute("trackNum");
+	}
+
+	set trackNum(val) {
+		this.setAttribute("trackNum", `${val}`);
 	}
 
 	get selectedTrack(): string {
@@ -157,7 +171,7 @@ class VideoMoq extends HTMLElement {
 		// TODO: Unsure if fingerprint should be optional
 		if (namespace === null || fingerprint === null) return;
 
-		const trackNumStr = urlParams.get("trackNum") || this.getAttribute("trackNum");
+		const trackNumStr = urlParams.get("trackNum") || this.trackNum;
 		const trackNum: number = this.auxParseInt(trackNumStr, 0);
 		Player.create({ url: url.origin, fingerprint, canvas: this.#canvas, namespace }, trackNum)
 			.then((player) => this.setPlayer(player))
