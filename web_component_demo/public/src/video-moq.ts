@@ -150,8 +150,8 @@ class VideoMoq extends HTMLElement {
 		// TODO: Unsure if fingerprint should be optional
 		if (namespace === null || fingerprint === null) return;
 
-		// TODO: make tracknum a parameter somehow
-		const trackNum = 0;
+		const trackNumStr = urlParams.get("trackNum") || this.getAttribute("trackNum");
+		const trackNum: number = this.auxParseInt(trackNumStr, 0);
 		Player.create({ url: url.origin, fingerprint, canvas: this.#canvas, namespace }, trackNum)
 			.then((player) => this.setPlayer(player))
 			.catch(this.error);
@@ -368,6 +368,12 @@ class VideoMoq extends HTMLElement {
 	display them on the canvas if we want */
 	private error(msg: any) {
 		console.error(msg);
+	}
+
+	private auxParseInt(str: string | null, def: number): number {
+		if (str == null) return def;
+		let res = parseInt(str);
+		return isNaN(res) ? def : res;
 	}
 }
 
