@@ -311,7 +311,7 @@ class VideoMoq extends HTMLElement {
 				this.#trackList.innerHTML = options
 					.map((option) => {
 						return /*html*/ `<li role="menuitem" tabIndex={0} data-name=${option}
-				class="flex w-full items-center justify-between px-4 py-2 hover:bg-black-100
+				class="flex w-full items-center justify-between px-4 py-2 hover:bg-black-100 cursor-pointer
 				 ${this.selectedTrack === option ? "bg-blue-500 text-white" : ""}"
 				 >
 				 <span>${option}</span>
