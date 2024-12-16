@@ -8,7 +8,6 @@ import Backend from "./backend"
 
 import { Client } from "../transport/client"
 import { GroupReader } from "../transport/objects"
-import EventManager, { EventManagerFactory } from "./event_manager"
 
 export type Range = Message.Range
 export type Timeline = Message.Timeline
@@ -35,7 +34,6 @@ export default class Player extends EventTarget {
 	#videoTrackName: string
 	#muted: boolean
 	#paused: boolean
-	#globalEventManager: EventManager
 
 	// Running is a promise that resolves when the player is closed.
 	// #close is called with no error, while #abort is called with an error.
@@ -54,14 +52,12 @@ export default class Player extends EventTarget {
 		this.#videoTrackName = ""
 		this.#muted = false
 		this.#paused = false
-		this.#globalEventManager = EventManagerFactory.getEventManager(canvas)
-		this.#backend = new Backend({ canvas, catalog })
-		this.#globalEventManager.attachTarget(this)
-		this.#globalEventManager.dispatchEvent(new Event("catalogupdated"))
-		this.#globalEventManager.dispatchEvent(new Event("loadedmetadata"))
 		canvas.addEventListener("waitingforkeyframe", () => {
-			this.#globalEventManager.dispatchEvent(new Event("waitingforkeyframe"))
+			super.dispatchEvent(new Event("waitingforkeyframe"))
 		})
+		this.#backend = new Backend({ canvas, catalog })
+		super.dispatchEvent(new Event("catalogupdated"))
+		super.dispatchEvent(new Event("loadedmetadata"))
 
 		const abort = new Promise<void>((resolve, reject) => {
 			this.#close = resolve
@@ -73,7 +69,7 @@ export default class Player extends EventTarget {
 
 		this.#run().catch((err) => {
 			console.error("Error in #run():", err)
-			this.#globalEventManager.dispatchEvent(new Event("error"))
+			super.dispatchEvent(new Event("error"))
 			this.#abort(err)
 		})
 	}
@@ -168,7 +164,7 @@ export default class Player extends EventTarget {
 				}
 
 				if (!eventOfFirstSegmentSent && kind == "video") {
-					this.#globalEventManager.dispatchEvent(new Event("loadeddata"))
+					super.dispatchEvent(new Event("loadeddata"))
 					eventOfFirstSegmentSent = true
 				}
 
@@ -259,30 +255,30 @@ export default class Player extends EventTarget {
 			this.subscribeFromTrackName(this.#audioTrackName)
 			await this.#backend.unmute()
 		}
-		this.#globalEventManager.dispatchEvent(new Event("volumechange"))
+		super.dispatchEvent(new Event("volumechange"))
 	}
 
 	async unsubscribeFromTrack(trackname: string) {
 		console.log(`Unsubscribing from track: ${trackname}`)
-		this.#globalEventManager.dispatchEvent(new Event("unsubscribestared"))
+		super.dispatchEvent(new Event("unsubscribestared"))
 		await this.#connection.unsubscribe(trackname)
 		const task = this.#trackTasks.get(trackname)
 		if (task) {
 			await task
 		}
-		this.#globalEventManager.dispatchEvent(new Event("unsuscribedone"))
+		super.dispatchEvent(new Event("unsuscribedone"))
 	}
 
 	subscribeFromTrackName(trackname: string) {
 		console.log(`Subscribing to track: ${trackname}`)
-		this.#globalEventManager.dispatchEvent(new Event("subscribestared"))
+		super.dispatchEvent(new Event("subscribestared"))
 		const track = this.#tracksByName.get(trackname)
 		if (track) {
 			this.#runTrack(track)
 		} else {
 			console.warn(`Track ${trackname} not in #tracksByName`)
 		}
-		this.#globalEventManager.dispatchEvent(new Event("subscribedone"))
+		super.dispatchEvent(new Event("subscribedone"))
 	}
 
 	#onMessage(msg: Message.FromWorker) {
@@ -325,14 +321,14 @@ export default class Player extends EventTarget {
 				this.subscribeFromTrackName(this.#audioTrackName)
 				await this.#backend.unmute()
 			}
-			this.#globalEventManager.dispatchEvent(new Event("play"))
+			super.dispatchEvent(new Event("play"))
 		} else {
 			await this.unsubscribeFromTrack(this.#videoTrackName)
 			await this.unsubscribeFromTrack(this.#audioTrackName)
 			await this.#backend.mute()
 			this.#backend.pause()
 			this.#paused = true
-			this.#globalEventManager.dispatchEvent(new Event("pause"))
+			super.dispatchEvent(new Event("pause"))
 		}
 	}
 

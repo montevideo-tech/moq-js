@@ -42,6 +42,7 @@ export default function Watch(props: { name: string }) {
 				player.addEventListener("unsuscribedone", () => console.log("Recived unsuscribedone event"))
 				player.addEventListener("subscribestared", () => console.log("Recived subscribestared event"))
 				player.addEventListener("suscribedone", () => console.log("Recived suscribedone event"))
+				player.addEventListener("waitingforkeyframe", () => console.log("Recived waitingforkeyframe event"))
 			})
 			.catch(setError)
 	})
