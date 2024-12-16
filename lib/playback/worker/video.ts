@@ -130,7 +130,7 @@ export class Renderer {
 			if (this.#waitingForKeyframe && !frame.sample.is_sync) {
 				console.warn("Skipping non-keyframe until a keyframe is found.")
 				if (!this.#hasSentWaitingForKeyFrameEvent) {
-					this.#canvas.dispatchEvent(new Event("waitingforkeyframe"))
+					self.postMessage("waitingforkeyframe")
 					this.#hasSentWaitingForKeyFrameEvent = true
 				}
 				return

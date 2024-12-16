@@ -52,10 +52,7 @@ export default class Player extends EventTarget {
 		this.#videoTrackName = ""
 		this.#muted = false
 		this.#paused = false
-		canvas.addEventListener("waitingforkeyframe", () => {
-			super.dispatchEvent(new Event("waitingforkeyframe"))
-		})
-		this.#backend = new Backend({ canvas, catalog })
+		this.#backend = new Backend({ canvas, catalog }, this)
 		super.dispatchEvent(new Event("catalogupdated"))
 		super.dispatchEvent(new Event("loadedmetadata"))
 
