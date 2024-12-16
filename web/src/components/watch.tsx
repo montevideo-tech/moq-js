@@ -6,7 +6,6 @@ import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-j
 import { VolumeButton } from "./volume"
 import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
-import { set } from "astro/zod"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.

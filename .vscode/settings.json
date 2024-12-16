@@ -15,8 +15,5 @@
 	"search.exclude": {
 		// Avoid polluting search results with lockfile content
 		"package-lock.json": true
-	},
-	"cSpell.words": [
-		"tracknum"
-	]
+	}
 }
