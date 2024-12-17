@@ -307,9 +307,10 @@ export class Player {
 		} else {
 			this.#paused = true
 			this.#backend.pause()
-			await this.unsubscribeFromTrack(this.#videoTrackName)
-			await this.unsubscribeFromTrack(this.#audioTrackName)
-			await this.#backend.mute()
+			const mutePromise = this.#backend.mute()
+			const audioPromise = this.unsubscribeFromTrack(this.#audioTrackName)
+			const videoPromise = this.unsubscribeFromTrack(this.#videoTrackName)
+			await Promise.all([mutePromise, audioPromise, videoPromise])
 		}
 	}
 

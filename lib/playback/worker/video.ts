@@ -58,6 +58,7 @@ export class Renderer {
 		const reader = this.#timeline.frames.pipeThrough(this.#queue).getReader()
 		for (;;) {
 			const { value: frame, done } = await reader.read()
+			if (this.#paused) continue
 			if (done) break
 
 			self.requestAnimationFrame(() => {

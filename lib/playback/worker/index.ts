@@ -22,7 +22,7 @@ class Worker {
 
 	on(e: MessageEvent) {
 		const msg = e.data as Message.ToWorker
-		console.log("message: ", msg)
+		// console.log("message: ", msg)
 
 		if (msg.config) {
 			this.#onConfig(msg.config)
