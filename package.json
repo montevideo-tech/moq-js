@@ -4,8 +4,7 @@
 	"private": true,
 	"workspaces": [
 		"lib",
-		"web",
-		"web_component_demo"
+		"web"
 	],
 	"scripts": {
 		"dev": "npm run dev --workspace web",

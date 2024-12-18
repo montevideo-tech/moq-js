@@ -60,8 +60,6 @@ export class VideoMoq extends HTMLElement {
 		else this.unmute()
 	}
 
-	// this.getAttribute("trackNum")
-
 	get trackNum(): string | null {
 		return this.getAttribute("trackNum")
 	}
@@ -114,7 +112,6 @@ export class VideoMoq extends HTMLElement {
 		this.destroy()
 	}
 
-	// TODO: Move attribute processing to a function and add this.
 	// Called when one of the element's watched attributes change. For an attribute to be watched, you must add it to the component class's static observedAttributes property.
 	// attributeChangedCallback() {}
 
@@ -226,7 +223,7 @@ export class VideoMoq extends HTMLElement {
 		if (height != -1) {
 			base.style.height = height.toString() + "px"
 		}
-		const aspectRatio = this.getAttribute("aspect-ratio") // TODO: We could also get this from the player
+		const aspectRatio = this.getAttribute("aspectRatio")
 		if (aspectRatio !== null) {
 			base.style.aspectRatio = aspectRatio.toString()
 		}
@@ -378,11 +375,6 @@ export class VideoMoq extends HTMLElement {
 
 		return parsed
 	}
-
-	// TODO: (?) Handle Stream ended event. May not be necessary, it came w/ the example.
-	// private onStreamEnded() {
-	// 	this.#playButton.disabled = false;
-	// }
 
 	/** Prints error and displays it in a red box */
 	private fail(error?: Error) {
