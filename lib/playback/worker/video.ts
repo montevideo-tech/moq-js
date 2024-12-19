@@ -42,7 +42,6 @@ export class Renderer {
 	}
 
 	pause() {
-		console.log("pause")
 		this.#waitingForKeyframe = true
 	}
 

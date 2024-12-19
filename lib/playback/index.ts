@@ -176,7 +176,11 @@ export default class Player extends EventTarget {
 				})
 			}
 		} catch (error) {
-			console.error("Error in #runTrack:", error)
+			if (error instanceof Error && error.message.includes("cancelled")) {
+				console.log("Cancelled subscription to track: ", track.name)
+			} else {
+				console.error("Error in #runTrack:", error)
+			}
 		} finally {
 			await sub.close()
 		}
@@ -320,8 +324,9 @@ export default class Player extends EventTarget {
 			}
 			super.dispatchEvent(new Event("play"))
 		} else {
-			await this.unsubscribeFromTrack(this.#videoTrackName)
-			await this.unsubscribeFromTrack(this.#audioTrackName)
+			const unSubVideoPromise = this.unsubscribeFromTrack(this.#videoTrackName)
+			const unSubAudioPromise = this.unsubscribeFromTrack(this.#audioTrackName)
+			await Promise.all([unSubVideoPromise, unSubAudioPromise])
 			await this.#backend.mute()
 			this.#backend.pause()
 			this.#paused = true

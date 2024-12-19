@@ -68,10 +68,8 @@ export default function Watch(props: { name: string }) {
 				.then(() => setIsPlaying(true))
 				.catch(setError)
 		} else {
-			playerInstance
-				.play()
-				.then(() => setIsPlaying(false))
-				.catch(setError)
+			setIsPlaying(false)
+			playerInstance.play().catch(setError)
 		}
 	}
 
