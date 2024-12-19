@@ -326,9 +326,9 @@ export default class Player extends EventTarget {
 			}
 			super.dispatchEvent(new CustomEvent("play", { detail: { track: this.#videoTrackName } }))
 		} else {
-			await this.#backend.mute()
 			await this.unsubscribeFromTrack(this.#videoTrackName)
 			await this.unsubscribeFromTrack(this.#audioTrackName)
+			await this.#backend.mute()
 			this.#backend.pause()
 			this.#paused = true
 			super.dispatchEvent(new CustomEvent("pause", { detail: { track: this.#videoTrackName } }))
