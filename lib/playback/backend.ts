@@ -55,7 +55,7 @@ export default class Backend {
 			msg.audio = {
 				channels: channels,
 				sampleRate: sampleRate,
-				ring: new RingShared(2, sampleRate / 5), // 100ms
+				ring: new RingShared(2, sampleRate / 10), // 100ms
 			}
 
 			this.#audio = new Audio(msg.audio)
@@ -103,7 +103,7 @@ export default class Backend {
 	private on(e: MessageEvent) {
 		const msg = e.data
 		if (msg === "waitingforkeyframe") {
-			this.#eventTarget.dispatchEvent(new CustomEvent("waitingforkeyframe"))
+			this.#eventTarget.dispatchEvent(new Event("waitingforkeyframe"))
 		}
 	}
 }

@@ -53,8 +53,8 @@ export default class Player extends EventTarget {
 		this.#muted = false
 		this.#paused = false
 		this.#backend = new Backend({ canvas, catalog }, this)
-		super.dispatchEvent(new Event("catalogupdated"))
-		super.dispatchEvent(new Event("loadedmetadata"))
+		super.dispatchEvent(new CustomEvent("catalogupdated", { detail: catalog }))
+		super.dispatchEvent(new CustomEvent("loadedmetadata", { detail: catalog }))
 
 		const abort = new Promise<void>((resolve, reject) => {
 			this.#close = resolve
@@ -66,7 +66,7 @@ export default class Player extends EventTarget {
 
 		this.#run().catch((err) => {
 			console.error("Error in #run():", err)
-			super.dispatchEvent(new Event("error"))
+			super.dispatchEvent(new CustomEvent("error", { detail: err }))
 			this.#abort(err)
 		})
 	}
@@ -180,6 +180,7 @@ export default class Player extends EventTarget {
 				console.log("Cancelled subscription to track: ", track.name)
 			} else {
 				console.error("Error in #runTrack:", error)
+				super.dispatchEvent(new CustomEvent("error", { detail: error }))
 			}
 		} finally {
 			await sub.close()
@@ -198,6 +199,7 @@ export default class Player extends EventTarget {
 
 		task.catch((err) => {
 			console.error(`Error to subscribe to track ${track.name}`, err)
+			super.dispatchEvent(new CustomEvent("error", { detail: err }))
 		}).finally(() => {
 			this.#trackTasks.delete(track.name)
 		})
@@ -241,8 +243,8 @@ export default class Player extends EventTarget {
 			console.log(`Subscribing to track: ${trackname}`)
 		}
 		this.#tracknum = this.#catalog.tracks.findIndex((track) => track.name === trackname)
-		const tracksToStream = this.#catalog.tracks.filter((track) => track.name === trackname)
-		await Promise.all(tracksToStream.map((track) => this.#runTrack(track)))
+
+		this.subscribeFromTrackName(trackname)
 	}
 
 	async mute(isMuted: boolean) {
@@ -256,30 +258,30 @@ export default class Player extends EventTarget {
 			this.subscribeFromTrackName(this.#audioTrackName)
 			await this.#backend.unmute()
 		}
-		super.dispatchEvent(new Event("volumechange"))
+		super.dispatchEvent(new CustomEvent("volumechange", { detail: { muted: isMuted } }))
 	}
 
 	async unsubscribeFromTrack(trackname: string) {
 		console.log(`Unsubscribing from track: ${trackname}`)
-		super.dispatchEvent(new Event("unsubscribestared"))
+		super.dispatchEvent(new CustomEvent("unsubscribestared", { detail: { track: trackname } }))
 		await this.#connection.unsubscribe(trackname)
 		const task = this.#trackTasks.get(trackname)
 		if (task) {
 			await task
 		}
-		super.dispatchEvent(new Event("unsuscribedone"))
+		super.dispatchEvent(new CustomEvent("unsubscribedone", { detail: { track: trackname } }))
 	}
 
 	subscribeFromTrackName(trackname: string) {
 		console.log(`Subscribing to track: ${trackname}`)
-		super.dispatchEvent(new Event("subscribestared"))
 		const track = this.#tracksByName.get(trackname)
 		if (track) {
+			super.dispatchEvent(new CustomEvent("subscribestared", { detail: { track: trackname } }))
 			this.#runTrack(track)
+			super.dispatchEvent(new CustomEvent("subscribedone", { detail: { track: trackname } }))
 		} else {
 			console.warn(`Track ${trackname} not in #tracksByName`)
 		}
-		super.dispatchEvent(new Event("subscribedone"))
 	}
 
 	#onMessage(msg: Message.FromWorker) {
@@ -322,15 +324,14 @@ export default class Player extends EventTarget {
 				this.subscribeFromTrackName(this.#audioTrackName)
 				await this.#backend.unmute()
 			}
-			super.dispatchEvent(new Event("play"))
+			super.dispatchEvent(new CustomEvent("play", { detail: { track: this.#videoTrackName } }))
 		} else {
-			const unSubVideoPromise = this.unsubscribeFromTrack(this.#videoTrackName)
-			const unSubAudioPromise = this.unsubscribeFromTrack(this.#audioTrackName)
-			await Promise.all([unSubVideoPromise, unSubAudioPromise])
 			await this.#backend.mute()
+			await this.unsubscribeFromTrack(this.#videoTrackName)
+			await this.unsubscribeFromTrack(this.#audioTrackName)
 			this.#backend.pause()
 			this.#paused = true
-			super.dispatchEvent(new Event("pause"))
+			super.dispatchEvent(new CustomEvent("pause", { detail: { track: this.#videoTrackName } }))
 		}
 	}
 

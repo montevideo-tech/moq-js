@@ -33,14 +33,24 @@ export default function Watch(props: { name: string }) {
 		Player.create({ url, fingerprint, canvas, namespace }, tracknum)
 			.then((player) => {
 				setPlayer(player)
-				player.addEventListener("play", () => console.log("Received play event"))
-				player.addEventListener("pause", () => console.log("Received pause event"))
+				player.addEventListener("play", (e: CustomEvent) => console.log("Received play event", e.detail))
+				player.addEventListener("pause", (e: CustomEvent) => console.log("Received pause event", e.detail))
 				player.addEventListener("loadeddata", () => console.log("Received loadeddata event"))
-				player.addEventListener("volumechange", () => console.log("Received volumechange event"))
-				player.addEventListener("unsubscribestared", () => console.log("Received unsubscribestared event"))
-				player.addEventListener("unsuscribedone", () => console.log("Received unsuscribedone event"))
-				player.addEventListener("subscribestared", () => console.log("Received subscribestared event"))
-				player.addEventListener("suscribedone", () => console.log("Received suscribedone event"))
+				player.addEventListener("volumechange", (e: CustomEvent) =>
+					console.log("Received volumechange event", e.detail),
+				)
+				player.addEventListener("unsubscribestared", (e: CustomEvent) =>
+					console.log("Received unsubscribestared event", e.detail),
+				)
+				player.addEventListener("unsubscribedone", (e: CustomEvent) =>
+					console.log("Received unsubscribedone event", e.detail),
+				)
+				player.addEventListener("subscribestared", (e: CustomEvent) =>
+					console.log("Received subscribestared event", e.detail),
+				)
+				player.addEventListener("subscribedone", (e: CustomEvent) =>
+					console.log("Received subscribedone event", e.detail),
+				)
 				player.addEventListener("waitingforkeyframe", () => console.log("Received waitingforkeyframe event"))
 			})
 			.catch(setError)
