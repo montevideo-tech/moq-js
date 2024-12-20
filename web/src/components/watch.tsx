@@ -5,6 +5,7 @@ import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-j
 import { VolumeControl } from "./volume"
 import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
+import { promise } from "astro/zod"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -51,17 +52,15 @@ export default function Watch(props: { name: string }) {
 	const handlePlayPause = () => {
 		const playerInstance = player()
 		if (!playerInstance) return
-
-		if (playerInstance.isPaused()) {
-			playerInstance
-				.play()
-				.then(() => setIsPlaying(true))
-				.catch(setError)
-		} else {
-			playerInstance
-				.play()
-				.then(() => setIsPlaying(false))
-				.catch(setError)
+		try {
+			void playerInstance.play()
+			if (playerInstance.isPaused()) {
+				setIsPlaying(false)
+			} else {
+				setIsPlaying(true)
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)))
 		}
 	}
 
