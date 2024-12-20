@@ -67,7 +67,11 @@ export default class Backend {
 	}
 
 	pause() {
-		this.send({ pause: true })
+		this.send({ play: false })
+	}
+
+	play() {
+		this.send({ play: true })
 	}
 
 	async mute() {
@@ -84,6 +88,10 @@ export default class Backend {
 
 	segment(segment: Segment) {
 		this.send({ segment }, segment.stream)
+	}
+
+	setVolume(newVolume: number) {
+		this.#audio?.setVolume(newVolume)
 	}
 
 	async close() {
