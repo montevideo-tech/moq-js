@@ -1,7 +1,11 @@
 import { onCleanup } from "solid-js"
 import { state, setState } from "src/store/state"
 
-export const PictureInPictureButton = () => {
+type PictureInPictureButtonProps = {
+	play: () => void
+}
+
+export const PictureInPictureButton = (props: PictureInPictureButtonProps) => {
 	let videoCanvasElement: HTMLElement | null
 	let pipWindow: WindowWithPiP | null
 
@@ -37,11 +41,17 @@ export const PictureInPictureButton = () => {
 					return
 				}
 
+				// @todo build Picture-in-Picture window component
+				// This should render the window with custom controls
+				// Ideally, we can render existing components in the PiP window
+				// to avoid duplicating click handlers and other logic
 				if (pipWindow) {
 					// Moves the video element to the PiP window
 					pipWindow.document.body.append(videoCanvasElement)
 					videoCanvasElement.style.width = "100%"
 					videoCanvasElement.style.height = "100%"
+					// @todo add custom controls to the PiP window
+					videoCanvasElement.onclick = () => props.play()
 
 					handleEnterPip()
 
