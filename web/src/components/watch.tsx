@@ -6,7 +6,7 @@ import { VolumeControl } from "./volume"
 import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
 import { PictureInPictureButton } from "./picture-in-picture"
-import { pipState } from "src/store/state"
+import { state } from "src/store/state"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -88,7 +88,7 @@ export default function Watch(props: { name: string }) {
 			return
 		}
 
-		const timeoutId = setTimeout(() => !pipState.pipActive && setShowControls(false), 3000)
+		const timeoutId = setTimeout(() => !state.pipActive && setShowControls(false), 3000)
 		onCleanup(() => clearTimeout(timeoutId))
 	})
 
@@ -106,7 +106,7 @@ export default function Watch(props: { name: string }) {
 					onMouseEnter={() => setHovered(true)}
 					onMouseLeave={() => setHovered(false)}
 				/>
-				{pipState.pipActive && (
+				{state.pipActive && (
 					<div class="relative flex h-full w-full items-center justify-center bg-black text-white">
 						Picture-in-Picture Mode
 					</div>

@@ -1,12 +1,12 @@
 import { onCleanup } from "solid-js"
-import { pipState, setPipState } from "src/store/state"
+import { state, setState } from "src/store/state"
 
 export const PictureInPictureButton = () => {
 	let videoCanvasElement: HTMLElement | null
 	let pipWindow: WindowWithPiP | null
 
-	const handleEnterPip = () => setPipState({ pipActive: true })
-	const handleLeavePip = () => setPipState({ pipActive: false })
+	const handleEnterPip = () => setState({ pipActive: true })
+	const handleLeavePip = () => setState({ pipActive: false })
 
 	const restoreVideoCanvas = () => {
 		const playerContainer = document.getElementById("video")
@@ -72,9 +72,9 @@ export const PictureInPictureButton = () => {
 			onClick={() => {
 				togglePictureInPicture().catch((error) => console.error("Error handling PiP button click:", error))
 			}}
-			aria-label={pipState.pipActive ? "Exit picture-in-picture mode" : "Enter picture-in-picture mode"}
+			aria-label={state.pipActive ? "Exit picture-in-picture mode" : "Enter picture-in-picture mode"}
 		>
-			{pipState.pipActive ? (
+			{state.pipActive ? (
 				<svg xmlns="http://www.w3.org/2000/svg" class="absolute h-[24px]" viewBox="0 0 24 24">
 					<g>
 						<path
