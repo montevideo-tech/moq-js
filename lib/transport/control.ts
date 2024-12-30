@@ -63,7 +63,7 @@ export interface Subscribe {
 
 	id: bigint
 	trackId: bigint
-	namespace: string
+	namespace: string[]
 	name: string
 	subscriber_priority: number
 	group_order: GroupOrder
@@ -135,25 +135,25 @@ export interface Unsubscribe {
 
 export interface Announce {
 	kind: Msg.Announce
-	namespace: string
+	namespace: string[]
 	params?: Parameters
 }
 
 export interface AnnounceOk {
 	kind: Msg.AnnounceOk
-	namespace: string
+	namespace: string[]
 }
 
 export interface AnnounceError {
 	kind: Msg.AnnounceError
-	namespace: string
+	namespace: string[]
 	code: bigint
 	reason: string
 }
 
 export interface Unannounce {
 	kind: Msg.Unannounce
-	namespace: string
+	namespace: string[]
 }
 
 export class Stream {
@@ -268,7 +268,7 @@ export class Decoder {
 			kind: Msg.Subscribe,
 			id: await this.r.u62(),
 			trackId: await this.r.u62(),
-			namespace: await this.r.string(),
+			namespace: await this.r.tuple(),
 			name: await this.r.string(),
 			subscriber_priority: await this.r.u8(),
 			group_order: await this.decodeGroupOrder(),
@@ -404,7 +404,7 @@ export class Decoder {
 	}
 
 	private async announce(): Promise<Announce> {
-		const namespace = await this.r.string()
+		const namespace = await this.r.tuple()
 
 		return {
 			kind: Msg.Announce,
@@ -416,14 +416,14 @@ export class Decoder {
 	private async announce_ok(): Promise<AnnounceOk> {
 		return {
 			kind: Msg.AnnounceOk,
-			namespace: await this.r.string(),
+			namespace: await this.r.tuple(),
 		}
 	}
 
 	private async announce_error(): Promise<AnnounceError> {
 		return {
 			kind: Msg.AnnounceError,
-			namespace: await this.r.string(),
+			namespace: await this.r.tuple(),
 			code: await this.r.u62(),
 			reason: await this.r.string(),
 		}
@@ -432,7 +432,7 @@ export class Decoder {
 	private async unannounce(): Promise<Unannounce> {
 		return {
 			kind: Msg.Unannounce,
-			namespace: await this.r.string(),
+			namespace: await this.r.tuple(),
 		}
 	}
 }
@@ -471,7 +471,7 @@ export class Encoder {
 		await this.w.u53(Id.Subscribe)
 		await this.w.u62(s.id)
 		await this.w.u62(s.trackId)
-		await this.w.string(s.namespace)
+		await this.w.tuple(s.namespace)
 		await this.w.string(s.name)
 		await this.w.u8(s.subscriber_priority ?? 127)
 		await this.encodeGroupOrder(s.group_order ?? GroupOrder.Publisher)

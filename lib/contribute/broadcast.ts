@@ -7,7 +7,7 @@ import * as Catalog from "../media/catalog"
 import { isAudioTrackSettings, isVideoTrackSettings } from "../common/settings"
 
 export interface BroadcastConfig {
-	namespace: string
+	namespace: string[]
 	connection: Connection
 	media: MediaStream
 
@@ -26,7 +26,7 @@ export class Broadcast {
 	readonly config: BroadcastConfig
 	readonly catalog: Catalog.Root
 	readonly connection: Connection
-	readonly namespace: string
+	readonly namespace: string[]
 
 	#running: Promise<void>
 

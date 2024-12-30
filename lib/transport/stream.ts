@@ -69,6 +69,17 @@ export class Reader {
 		return this.#slice(this.#buffer.byteLength)
 	}
 
+	async tuple(): Promise<string[]> {
+		const length = await this.u53()
+		const tuple = (await this.string()).split("/").filter(Boolean) // remove empty strings
+
+		if (length !== tuple.length) {
+			throw new Error(`expected tuple length ${length}, got ${tuple.length}`)
+		}
+
+		return tuple
+	}
+
 	async string(maxLength?: number): Promise<string> {
 		const length = await this.u53()
 		if (maxLength !== undefined && length > maxLength) {
@@ -190,7 +201,10 @@ export class Writer {
 	async write(v: Uint8Array) {
 		await this.#writer.write(v)
 	}
-
+	async tuple(arr: string[]) {
+		await this.u53(arr.length)
+		await this.string(arr.join("/"))
+	}
 	async string(str: string) {
 		const data = new TextEncoder().encode(str)
 		await this.u53(data.byteLength)
