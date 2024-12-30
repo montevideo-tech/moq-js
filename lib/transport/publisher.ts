@@ -1,6 +1,6 @@
 import * as Control from "./control"
 import { Queue, Watch } from "../common/async"
-import { Objects, GroupWriter, ObjectWriter, StreamType, TrackWriter } from "./objects"
+import { Objects, SubgroupWriter, StreamType, TrackWriter } from "./objects"
 
 export class Publisher {
 	// Used to send control messages
@@ -218,27 +218,15 @@ export class SubscribeRecv {
 		})
 	}
 
-	// Create a writable data stream for a group within the track
-	async group(props: { group: number; priority?: number }): Promise<GroupWriter> {
+	// Create a writable data stream for a subgroup within the track
+	async subgroup(props: { group: number; subgroup: number; priority?: number }): Promise<SubgroupWriter> {
 		return this.#objects.send({
-			type: StreamType.Group,
+			type: StreamType.Subgroup,
 			sub: this.#id,
 			track: this.#trackId,
 			group: props.group,
+			subgroup: props.subgroup,
 			publisher_priority: props.priority ?? 127,
-		})
-	}
-
-	// Create a writable data stream for a single object within the track
-	async object(props: { group: number; object: number; priority?: number }): Promise<ObjectWriter> {
-		return this.#objects.send({
-			type: StreamType.Object,
-			sub: this.#id,
-			track: this.#trackId,
-			group: props.group,
-			object: props.object,
-			publisher_priority: props.priority ?? 127,
-			status: 0,
 		})
 	}
 }

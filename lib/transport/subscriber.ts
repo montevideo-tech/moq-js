@@ -1,7 +1,7 @@
 import * as Control from "./control"
 import { Queue, Watch } from "../common/async"
 import { Objects } from "./objects"
-import type { TrackReader, GroupReader, ObjectReader } from "./objects"
+import type { TrackReader, SubgroupReader } from "./objects"
 
 export class Subscriber {
 	// Use to send control messages.
@@ -131,7 +131,7 @@ export class Subscriber {
 		await subscribe.onError(msg.code, msg.reason)
 	}
 
-	async recvObject(reader: TrackReader | GroupReader | ObjectReader) {
+	async recvObject(reader: TrackReader | SubgroupReader) {
 		const subscribe = this.#subscribe.get(reader.header.track)
 		if (!subscribe) {
 			throw new Error(`data for for unknown track: ${reader.header.track}`)
@@ -179,7 +179,7 @@ export class SubscribeSend {
 	readonly track: string
 
 	// A queue of received streams for this subscription.
-	#data = new Queue<TrackReader | GroupReader | ObjectReader>()
+	#data = new Queue<TrackReader | SubgroupReader>()
 
 	constructor(control: Control.Stream, id: bigint, namespace: string, track: string) {
 		this.#control = control // so we can send messages
@@ -210,7 +210,7 @@ export class SubscribeSend {
 		return await this.#data.abort(err)
 	}
 
-	async onData(reader: TrackReader | GroupReader | ObjectReader) {
+	async onData(reader: TrackReader | SubgroupReader) {
 		if (!this.#data.closed()) await this.#data.push(reader)
 	}
 

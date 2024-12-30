@@ -7,7 +7,7 @@ import { asError } from "../common/error"
 import Backend from "./backend"
 
 import { Client } from "../transport/client"
-import { GroupReader } from "../transport/objects"
+import { SubgroupReader } from "../transport/objects"
 
 export type Range = Message.Range
 export type Timeline = Message.Timeline
@@ -143,7 +143,7 @@ export class Player {
 				const segment = await Promise.race([sub.data(), this.#running])
 				if (!segment) continue
 
-				if (!(segment instanceof GroupReader)) {
+				if (!(segment instanceof SubgroupReader)) {
 					throw new Error(`expected group reader for segment: ${track.name}`)
 				}
 
