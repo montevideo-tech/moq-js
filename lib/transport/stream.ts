@@ -263,6 +263,38 @@ export class Writer {
 		return new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
 	}
 
+	concatBuffer(bufferArray: (Uint8Array | undefined)[]) {
+		let length = 0
+		bufferArray.forEach((buffer) => {
+			if (buffer === undefined) return
+			length += buffer.length
+		})
+		let offset = 0
+		const result = new Uint8Array(length)
+		bufferArray.forEach((buffer) => {
+			if (buffer === undefined) return
+			result.set(buffer, offset)
+			offset += buffer.length
+		})
+		return result
+	}
+
+	encodeTuple(buffer: Uint8Array, tuple: string[]) {
+		const tupleBytes = new TextEncoder().encode(tuple.join("/"))
+
+		return this.concatBuffer([
+			this.setVint53(buffer, tuple.length),
+			this.setVint53(buffer, tupleBytes.length),
+			tupleBytes,
+		])
+	}
+
+	encodeString(buffer: Uint8Array, str: string): Uint8Array {
+		const strBytes = new TextEncoder().encode(str)
+
+		return this.concatBuffer([this.setVint53(buffer, strBytes.length), strBytes])
+	}
+
 	async write(v: Uint8Array) {
 		await this.#writer.write(v)
 	}
