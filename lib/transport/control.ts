@@ -211,7 +211,7 @@ export class Decoder {
 
 	private async msg(): Promise<Msg> {
 		const t = await this.r.u53()
-		switch (t) {
+		switch (t as Id) {
 			case Id.Subscribe:
 				return Msg.Subscribe
 			case Id.SubscribeOk:
