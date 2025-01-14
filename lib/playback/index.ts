@@ -20,7 +20,7 @@ export interface PlayerConfig {
 }
 
 // This class must be created on the main thread due to AudioContext.
-export class Player {
+export default class Player {
 	#backend: Backend
 
 	// A periodically updated timeline
@@ -306,9 +306,9 @@ export class Player {
 	// Added this to divide play and pause into two different functions
 	async togglePlayPause() {
 		if (this.#paused) {
-			this.play()
+			await this.play()
 		} else {
-			this.pause()
+			await this.pause()
 		}
 	}
 
@@ -320,16 +320,27 @@ export class Player {
 				this.subscribeFromTrackName(this.#audioTrackName)
 				await this.#backend.unmute()
 			}
+			this.#backend.play()
 		}
 	}
 
 	async pause() {
 		if (!this.#paused) {
-			await this.unsubscribeFromTrack(this.#videoTrackName)
-			await this.unsubscribeFromTrack(this.#audioTrackName)
-			await this.#backend.mute()
-			this.#backend.pause()
 			this.#paused = true
+			const mutePromise = this.#backend.mute()
+			const audioPromise = this.unsubscribeFromTrack(this.#audioTrackName)
+			const videoPromise = this.unsubscribeFromTrack(this.#videoTrackName)
+			this.#backend.pause()
+			await Promise.all([mutePromise, audioPromise, videoPromise])
+		}
+	}
+
+	async setVolume(newVolume: number) {
+		this.#backend.setVolume(newVolume)
+		if (newVolume == 0 && !this.#muted) {
+			await this.mute(true)
+		} else if (newVolume > 0 && this.#muted) {
+			await this.mute(false)
 		}
 	}
 

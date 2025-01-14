@@ -1,11 +1,11 @@
-import { Player } from "@kixelated/moq/playback"
+import Player from "../playback/index"
 
 /**
  * This stylesheet is self contained within the shadow root
  * If we attach the element as open in the constructor, it should inherit
  * the document's style.
  */
-import STYLE_SHEET from "./video-moq.css?inline"
+import STYLE_SHEET from "./video-moq.css"
 
 const PLAY_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
 					<path d="M3 22v-20l18 10-18 10z" />
@@ -56,8 +56,15 @@ export class VideoMoq extends HTMLElement {
 	}
 
 	set muted(mute: boolean) {
-		if (mute) this.mute()
-		else this.unmute()
+		if (mute) {
+			this.mute().catch((err) => {
+				console.error("Error muting:", err)
+			})
+		} else {
+			this.unmute().catch((err) => {
+				console.error("Error unmuting:", err)
+			})
+		}
 	}
 
 	get trackNum(): string | null {
@@ -85,8 +92,17 @@ export class VideoMoq extends HTMLElement {
 		this.shadow = this.attachShadow({ mode: "open" })
 
 		// Bind event listeners to add and remove from lists.
-		this.playPauseEventHandler = this.togglePlayPause.bind(this)
-		this.toggleMuteEventHandler = this.toggleMute.bind(this)
+		this.playPauseEventHandler = () => {
+			this.togglePlayPause().catch((err) => {
+				console.error("Error toggling play/pause:", err)
+			})
+		}
+
+		this.toggleMuteEventHandler = () => {
+			this.toggleMute().catch((err) => {
+				console.error("Error toggling mute:", err)
+			})
+		}
 
 		this.onMouseEnterHandler = this.toggleShowControls.bind(this, true)
 		this.onMouseLeaveHandler = this.toggleShowControls.bind(this, false)
@@ -109,7 +125,9 @@ export class VideoMoq extends HTMLElement {
 	 * Called when the element is removed from the DOM
 	 * */
 	disconnectedCallback() {
-		this.destroy()
+		this.destroy().catch((error) => {
+			console.error("Error while destroying:", error)
+		})
 	}
 
 	// Called when one of the element's watched attributes change. For an attribute to be watched, you must add it to the component class's static observedAttributes property.
@@ -139,8 +157,10 @@ export class VideoMoq extends HTMLElement {
 		}
 	}
 
-	private async load() {
-		this.destroy()
+	private load() {
+		this.destroy().catch((error) => {
+			console.error("Error while destroying:", error)
+		})
 
 		this.shadow.innerHTML = /*html*/ `
 			<style>${STYLE_SHEET}</style>
@@ -175,7 +195,7 @@ export class VideoMoq extends HTMLElement {
 			.catch((e) => this.fail(e))
 
 		if (this.controls !== null) {
-			let controlsElement = document.createElement("div")
+			const controlsElement = document.createElement("div")
 			controlsElement.innerHTML = /* html */ `
 			<div id="controls" class="absolute opacity-0 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
 				<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
@@ -229,7 +249,7 @@ export class VideoMoq extends HTMLElement {
 		}
 	}
 
-	private destroy() {
+	private async destroy() {
 		this.#canvas?.removeEventListener("click", this.playPauseEventHandler)
 		this.#playButton?.removeEventListener("click", this.playPauseEventHandler)
 
@@ -242,7 +262,8 @@ export class VideoMoq extends HTMLElement {
 
 		this.#trackButton?.removeEventListener("click", this.toggleShowTrackEventHandler)
 
-		this.player?.close()
+		if (!this.player) return
+		await this.player.close()
 		this.player = null
 	}
 
@@ -258,14 +279,26 @@ export class VideoMoq extends HTMLElement {
 	}
 
 	// Play / Pause
-	private togglePlayPause() {
+	private async togglePlayPause() {
 		if (!this.#playButton) return
 
 		this.#playButton.disabled = true
-		;(this.player?.isPaused() ? this.play() : this.pause()).finally(() => {
-			if (!this.#playButton) return
-			this.#playButton.disabled = false
-		})
+
+		try {
+			if (!this.player) return
+
+			if (this.player.isPaused()) {
+				await this.play()
+			} else {
+				await this.pause()
+			}
+		} catch (error) {
+			console.error("Error toggling play/pause:", error)
+		} finally {
+			if (this.#playButton) {
+				this.#playButton.disabled = false
+			}
+		}
 	}
 
 	public play(): Promise<void> {
@@ -274,7 +307,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PAUSE_SVG
 					this.#playButton.ariaLabel = "Pause"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -284,17 +317,26 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PLAY_SVG
 					this.#playButton.ariaLabel = "Play"
-			  })
+				})
 			: Promise.resolve()
 	}
 
-	private toggleMute() {
+	private async toggleMute() {
 		if (!this.#volumeButton) return
 		this.#volumeButton.disabled = true
-		;(this.muted ? this.unmute() : this.mute()).finally(() => {
-			if (!this.#volumeButton) return
-			this.#volumeButton.disabled = false
-		})
+		try {
+			if (this.muted) {
+				await this.unmute()
+			} else {
+				await this.mute()
+			}
+		} catch (error) {
+			console.error("Error toggling mute:", error)
+		} finally {
+			if (this.#volumeButton) {
+				this.#volumeButton.disabled = false
+			}
+		}
 	}
 
 	public unmute(): Promise<void> {
@@ -303,7 +345,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Mute"
 					this.#volumeButton.innerText = "🔊"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -313,7 +355,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Unmute"
 					this.#volumeButton.innerText = "🔇"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -336,10 +378,16 @@ export class VideoMoq extends HTMLElement {
 					})
 					.join("")
 				this.#trackList.querySelectorAll("li").forEach((element) => {
-					element.addEventListener("click", () => this.switchTrack(element.dataset.name || null))
+					element.addEventListener("click", () => {
+						this.switchTrack(element.dataset.name || null).catch((error) => {
+							console.error("Error switching track:", error)
+						})
+					})
 					element.addEventListener("keydown", (e) => {
 						if (e.key === "Enter" || e.key === " ") {
-							this.switchTrack(element.dataset.name || null)
+							this.switchTrack(element.dataset.name || null).catch((error) => {
+								console.error("Error switching track:", error)
+							})
 						}
 					})
 				})
@@ -351,13 +399,13 @@ export class VideoMoq extends HTMLElement {
 		}
 	}
 
-	private switchTrack(name: string | null) {
+	private async switchTrack(name: string | null) {
 		if (name === null) {
 			this.error = new Error("Could not recognize selected track name")
 			return
 		}
 
-		this.player?.switchTrack(name)
+		await this.player?.switchTrack(name)
 	}
 
 	private parseDimension(value: string | null, defaultValue: number): number {
@@ -394,7 +442,7 @@ export class VideoMoq extends HTMLElement {
 
 	private auxParseInt(str: string | null, def: number): number {
 		if (str == null) return def
-		let res = parseInt(str)
+		const res = parseInt(str)
 		return isNaN(res) ? def : res
 	}
 }
