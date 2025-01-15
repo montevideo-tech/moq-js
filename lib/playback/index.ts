@@ -324,14 +324,25 @@ export default class Player extends EventTarget {
 				this.subscribeFromTrackName(this.#audioTrackName)
 				await this.#backend.unmute()
 			}
+			this.#backend.play()
 			super.dispatchEvent(new CustomEvent("play", { detail: { track: this.#videoTrackName } }))
 		} else {
-			await this.unsubscribeFromTrack(this.#videoTrackName)
-			await this.unsubscribeFromTrack(this.#audioTrackName)
-			await this.#backend.mute()
-			this.#backend.pause()
 			this.#paused = true
+			this.#backend.pause()
+			const mutePromise = this.#backend.mute()
+			const audioPromise = this.unsubscribeFromTrack(this.#audioTrackName)
+			const videoPromise = this.unsubscribeFromTrack(this.#videoTrackName)
 			super.dispatchEvent(new CustomEvent("pause", { detail: { track: this.#videoTrackName } }))
+			await Promise.all([mutePromise, audioPromise, videoPromise])
+		}
+	}
+
+	async setVolume(newVolume: number) {
+		this.#backend.setVolume(newVolume)
+		if (newVolume == 0 && !this.#muted) {
+			await this.mute(true)
+		} else if (newVolume > 0 && this.#muted) {
+			await this.mute(false)
 		}
 	}
 

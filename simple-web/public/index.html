@@ -13,7 +13,7 @@
 			namespace: "bbb",
 		};
 		var player = null;
-		moqplayer.create(config, 1).then((p) => {
+		moqplayer.create(config, 0).then((p) => {
 			player = p;
 			player.addEventListener("play", (e) => console.log("Received play event", e.detail))
 				player.addEventListener("pause", (e) => console.log("Received pause event", e.detail))

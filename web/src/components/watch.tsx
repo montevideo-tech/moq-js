@@ -3,9 +3,10 @@ import Player from "moq-player"
 
 import Fail from "./fail"
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
-import { VolumeButton } from "./volume"
+import { VolumeControl } from "./volume"
 import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
+import { promise } from "astro/zod"
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -60,6 +61,10 @@ export default function Watch(props: { name: string }) {
 		player()?.mute(state).catch(setError)
 	}
 
+	const setVolume = (newVolume: number) => {
+		player()?.setVolume(newVolume).catch(setError)
+	}
+
 	const switchTrack = (track: string) => {
 		void player()?.switchTrack(track)
 	}
@@ -71,17 +76,15 @@ export default function Watch(props: { name: string }) {
 	const handlePlayPause = () => {
 		const playerInstance = player()
 		if (!playerInstance) return
-
-		if (playerInstance.isPaused()) {
-			playerInstance
-				.play()
-				.then(() => setIsPlaying(true))
-				.catch(setError)
-		} else {
-			playerInstance
-				.play()
-				.then(() => setIsPlaying(false))
-				.catch(setError)
+		try {
+			void playerInstance.play()
+			if (playerInstance.isPaused()) {
+				setIsPlaying(false)
+			} else {
+				setIsPlaying(true)
+			}
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)))
 		}
 	}
 
@@ -132,7 +135,7 @@ export default function Watch(props: { name: string }) {
 				>
 					<PlayButton onClick={handlePlayPause} isPlaying={isPlaying()} />
 					<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black/70 p-2">
-						<VolumeButton mute={mute} />
+						<VolumeControl mute={mute} setVolume={setVolume} />
 						<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
 					</div>
 				</div>
