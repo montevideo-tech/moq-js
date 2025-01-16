@@ -55,7 +55,6 @@ export default function Watch(props: { name: string }) {
 	const handlePlayPause = () => {
 		const playerInstance = player()
 		if (!playerInstance) return
-
 		if (playerInstance.isPaused()) {
 			playerInstance
 				.togglePlayPause()
