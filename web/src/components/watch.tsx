@@ -6,7 +6,6 @@ import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-j
 import { VolumeControl } from "./volume"
 import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
-import { promise } from "astro/zod"
 import { FullscreenButton } from "./fullscreen"
 
 export default function Watch(props: { name: string }) {
