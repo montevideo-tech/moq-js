@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import Player from "moq-player"
+import Player from "moq-player/simple-player"
 
 import Fail from "./fail"
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
@@ -9,7 +9,6 @@ import { TrackSelect } from "./track-select"
 import { PictureInPictureButton } from "./picture-in-picture"
 import { state } from "src/store/state"
 import { FullscreenButton } from "./fullscreen"
-
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -56,15 +55,17 @@ export default function Watch(props: { name: string }) {
 	const handlePlayPause = () => {
 		const playerInstance = player()
 		if (!playerInstance) return
-		try {
-			void playerInstance.play()
-			if (playerInstance.isPaused()) {
-				setIsPlaying(false)
-			} else {
-				setIsPlaying(true)
-			}
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error(String(err)))
+
+		if (playerInstance.isPaused()) {
+			playerInstance
+				.togglePlayPause()
+				.then(() => setIsPlaying(true))
+				.catch(setError)
+		} else {
+			playerInstance
+				.togglePlayPause()
+				.then(() => setIsPlaying(false))
+				.catch(setError)
 		}
 	}
 
