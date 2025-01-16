@@ -8,7 +8,6 @@ import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
 import { PictureInPictureButton } from "./picture-in-picture"
 import { state } from "src/store/state"
-import { promise } from "astro/zod"
 import { FullscreenButton } from "./fullscreen"
 
 
