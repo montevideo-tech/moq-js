@@ -1,5 +1,6 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import { Player } from "@kixelated/moq/playback"
+import Player from "moq-player"
+
 import Fail from "./fail"
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { VolumeControl } from "./volume"
@@ -7,6 +8,9 @@ import { PlayButton } from "./play-button"
 import { TrackSelect } from "./track-select"
 import { PictureInPictureButton } from "./picture-in-picture"
 import { state } from "src/store/state"
+import { promise } from "astro/zod"
+import { FullscreenButton } from "./fullscreen"
+
 
 export default function Watch(props: { name: string }) {
 	// Use query params to allow overriding environment variables.
@@ -85,7 +89,6 @@ export default function Watch(props: { name: string }) {
 	createEffect(() => {
 		if (hovered()) {
 			setShowControls(true)
-			return
 		}
 
 		const timeoutId = setTimeout(() => !state.pipActive && setShowControls(false), 3000)
@@ -101,7 +104,7 @@ export default function Watch(props: { name: string }) {
 				<canvas
 					ref={canvas}
 					onClick={handlePlayPause}
-					class="h-full w-full rounded-lg"
+          class="h-full w-full rounded-lg object-contain"
 					id="video-canvas"
 					onMouseEnter={() => setHovered(true)}
 					onMouseLeave={() => setHovered(false)}
@@ -121,6 +124,7 @@ export default function Watch(props: { name: string }) {
 						<VolumeControl mute={mute} setVolume={setVolume} />
 						<TrackSelect trackNum={tracknum} getVideoTracks={getVideoTracks} switchTrack={switchTrack} />
 						{"documentPictureInPicture" in window && <PictureInPictureButton play={handlePlayPause} />}
+						<FullscreenButton />
 					</div>
 				</div>
 			</div>
