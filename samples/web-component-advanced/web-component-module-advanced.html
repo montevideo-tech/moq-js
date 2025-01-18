@@ -9,14 +9,14 @@
 		<h1>Web Component Advanced Example</h1>
 		<!-- Using the script player component -->
 
-		<div id="video-moq" style="width: 640px"></div>
+		<div id="video-moq" style="width: 640px; height: 360px"></div>
 		<script type="module">
 			import VideoMoq from "/moq-player/moq-player.esm.js";
 
 			var video = document.getElementById("video-moq");
 			var videoSrc = "https://localhost:4443?namespace=bbb&fingerprint=https://localhost:4443/fingerprint";
 
-			var player = new VideoMoq(video);
+			var player = new VideoMoq();
 			player.src = videoSrc;
 			player.trackNum = 0;
 			player.controls = true;

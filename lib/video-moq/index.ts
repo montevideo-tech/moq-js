@@ -14,6 +14,24 @@ const PAUSE_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
 				</svg>`
 
+const ENTER_PIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" class="absolute h-4" viewBox="0 0 24 24">
+					<g>
+						<path
+							fill="#fff"
+							d="M21 3a1 1 0 0 1 1 1v7h-2V5H4v14h6v2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h18zm0 10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h8zm-9.5-6L9.457 9.043l2.25 2.25-1.414 1.414-2.25-2.25L6 12.5V7h5.5z"
+						/>
+					</g>
+				</svg>`
+
+const EXIT_PIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" class="absolute h-4" viewBox="0 0 24 24">
+					<g>
+						<path
+							fill="#fff"
+							d="M21 3a1 1 0 0 1 1 1v7h-2V5H4v14h6v2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h18zm0 10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h8zm-1 2h-6v4h6v-4zM6.707 6.293l2.25 2.25L11 6.5V12H5.5l2.043-2.043-2.25-2.25 1.414-1.414z"
+						/>
+					</g>
+				</svg>`
+
 export class VideoMoq extends HTMLElement {
 	private shadow: ShadowRoot
 
@@ -24,8 +42,10 @@ export class VideoMoq extends HTMLElement {
 	private toggleMuteEventHandler: (event: Event) => void
 	private toggleShowTrackEventHandler: (event: Event) => void
 	private toggleFullscreenEventHandler: (event: Event) => void
+	private togglePictureInPictureEventHandler: (event: Event) => void
 
 	// HTML Elements
+	#base?: HTMLDivElement
 	#canvas?: HTMLCanvasElement
 	#playButton?: HTMLButtonElement
 	#controls?: HTMLElement
@@ -33,6 +53,8 @@ export class VideoMoq extends HTMLElement {
 	#trackButton?: HTMLButtonElement
 	#trackList?: HTMLUListElement
 	#fullscreenButton?: HTMLButtonElement
+	#pipButton?: HTMLButtonElement
+	#pipWindow?: WindowWithPiP
 
 	// State
 	private player: Player | null = null
@@ -70,7 +92,7 @@ export class VideoMoq extends HTMLElement {
 	}
 
 	get fullscreen(): boolean {
-		return document.fullscreenElement === this.shadow.querySelector("#base")
+		return document.fullscreenElement === this.#base
 	}
 
 	set fullscreen(fullscreen: boolean) {
@@ -83,6 +105,10 @@ export class VideoMoq extends HTMLElement {
 				console.error("Error exiting fullscreen:", err)
 			})
 		}
+	}
+
+	get pictureInPictureActive(): boolean {
+		return this.#pipWindow !== undefined
 	}
 
 	get trackNum(): string | null {
@@ -119,6 +145,12 @@ export class VideoMoq extends HTMLElement {
 		this.toggleMuteEventHandler = () => {
 			this.toggleMute().catch((err) => {
 				console.error("Error toggling mute:", err)
+			})
+		}
+
+		this.togglePictureInPictureEventHandler = () => {
+			this.togglePictureInPicture().catch((err) => {
+				console.error("Error toggling picture-in-picture: ", err)
 			})
 		}
 
@@ -184,14 +216,14 @@ export class VideoMoq extends HTMLElement {
 
 		this.shadow.innerHTML = /*html*/ `
 			<style>${STYLE_SHEET}</style>
-			<div id="base" class="relative">
+			<div id="base">
 				<div id="error"></div>
 				<canvas id="canvas" class="h-full w-full rounded-lg">
 				</canvas>
 			</div>
 		`
 
-		const base: HTMLDivElement = this.shadow.querySelector("#base")!
+		this.#base = this.shadow.querySelector("#base")!
 		this.#canvas = this.shadow.querySelector("canvas#canvas")!
 
 		if (!this.src) {
@@ -216,6 +248,13 @@ export class VideoMoq extends HTMLElement {
 
 		if (this.controls !== null) {
 			const controlsElement = document.createElement("div")
+			const pipButtonHTML = window.documentPictureInPicture
+				? `
+					<button id="picture-in-picture" aria-label="Enter picture-in-picture" class="relative flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-80 focus:bg-black-80 focus:outline-none">
+						${ENTER_PIP_SVG}
+					</button>
+				`
+				: ""
 			controlsElement.innerHTML = /* html */ `
 			<div id="controls" class="absolute opacity-0 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
 				<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
@@ -230,12 +269,13 @@ export class VideoMoq extends HTMLElement {
 					</button>
 					<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
 					</ul>
+					${pipButtonHTML}
 					<button id="fullscreen" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
 						⛶
 					</button>
 				</div>
 			</div>`
-			base.appendChild(controlsElement.children[0])
+			this.#base.appendChild(controlsElement.children[0])
 
 			this.#controls = this.shadow.querySelector("#controls")!
 			this.#playButton = this.shadow.querySelector("#play")!
@@ -243,6 +283,7 @@ export class VideoMoq extends HTMLElement {
 			this.#trackButton = this.shadow.querySelector("#track")!
 			this.#trackList = this.shadow.querySelector("ul#tracklist")!
 			this.#fullscreenButton = this.shadow.querySelector("#fullscreen")!
+			this.#pipButton = this.shadow.querySelector("#picture-in-picture")!
 
 			this.#canvas.addEventListener("click", this.playPauseEventHandler)
 
@@ -257,6 +298,7 @@ export class VideoMoq extends HTMLElement {
 
 			this.#trackButton.addEventListener("click", this.toggleShowTrackEventHandler)
 			this.#fullscreenButton.addEventListener("click", this.toggleFullscreenEventHandler)
+			this.#pipButton.addEventListener("click", this.togglePictureInPictureEventHandler)
 
 			document.addEventListener("keydown", (e) => {
 				if (e.key === "f") {
@@ -270,14 +312,14 @@ export class VideoMoq extends HTMLElement {
 		const height = this.parseDimension(this.getAttribute("height"), -1)
 
 		if (width != -1) {
-			base.style.width = width.toString() + "px"
+			this.#base.style.width = width.toString() + "px"
 		}
 		if (height != -1) {
-			base.style.height = height.toString() + "px"
+			this.#base.style.height = height.toString() + "px"
 		}
 		const aspectRatio = this.getAttribute("aspectRatio")
 		if (aspectRatio !== null) {
-			base.style.aspectRatio = aspectRatio.toString()
+			this.#base.style.aspectRatio = aspectRatio.toString()
 		}
 	}
 
@@ -294,6 +336,7 @@ export class VideoMoq extends HTMLElement {
 
 		this.#trackButton?.removeEventListener("click", this.toggleShowTrackEventHandler)
 		this.#fullscreenButton?.removeEventListener("click", this.toggleFullscreenEventHandler)
+		this.#pipButton?.removeEventListener("click", this.togglePictureInPictureEventHandler)
 
 		document.removeEventListener("keydown", this.toggleFullscreenEventHandler)
 		document.removeEventListener("fullscreenchange", () => this.onFullscreenChange())
@@ -343,7 +386,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PAUSE_SVG
 					this.#playButton.ariaLabel = "Pause"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -353,7 +396,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PLAY_SVG
 					this.#playButton.ariaLabel = "Play"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -381,7 +424,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Mute"
 					this.#volumeButton.innerText = "🔊"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -391,7 +434,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Unmute"
 					this.#volumeButton.innerText = "🔇"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -401,9 +444,8 @@ export class VideoMoq extends HTMLElement {
 
 	private async enterFullscreen() {
 		try {
-			const base = this.shadow.querySelector("#base")
-			if (base) {
-				await base.requestFullscreen()
+			if (this.#base) {
+				await this.#base.requestFullscreen()
 			}
 		} catch (error) {
 			console.error("Error entering fullscreen:", error)
@@ -429,6 +471,98 @@ export class VideoMoq extends HTMLElement {
 				this.#fullscreenButton.innerHTML = "⛶"
 				this.#fullscreenButton.ariaLabel = "Full screen"
 			}
+		}
+	}
+
+	private async enterPictureInPicture() {
+		if (!this.#pipButton) {
+			return
+		}
+
+		if (!this.#canvas) {
+			console.warn("Canvas element not found.")
+			return
+		}
+
+		if (!this.#base) {
+			console.warn("Base element not found.")
+			return
+		}
+
+		this.#pipWindow =
+			window.documentPictureInPicture &&
+			(await window.documentPictureInPicture.requestWindow({
+				width: 320,
+				height: 180,
+			}))
+
+		if (!this.#pipWindow) {
+			console.warn("Picture-in-Picture window not found.")
+			return
+		}
+
+		// Move the canvas to the PiP window
+		this.#pipWindow.document.body.append(this.#canvas)
+		this.#canvas.style.width = "100%"
+		this.#canvas.style.height = "100%"
+
+		this.#pipButton.innerHTML = EXIT_PIP_SVG
+
+		this.#base.classList.add("pip-mode")
+
+		const pipText = document.createElement("div")
+		pipText.id = "pip-text"
+		pipText.textContent = "Picture-in-Picture Mode"
+		pipText.style.color = "white"
+		pipText.style.textAlign = "center"
+		pipText.style.marginTop = "10px"
+		this.#base.appendChild(pipText)
+
+		this.#canvas.addEventListener("click", this.playPauseEventHandler)
+		this.#pipWindow?.addEventListener("pagehide", () => this.exitPictureInPicture())
+	}
+
+	private exitPictureInPicture() {
+		if (!this.#pipButton) {
+			return
+		}
+
+		if (this.#canvas && this.#base) {
+			// Restore the canvas to the base element
+			this.#base.append(this.#canvas)
+
+			this.#pipButton.innerHTML = ENTER_PIP_SVG
+
+			this.#base.classList.remove("pip-mode")
+
+			const pipText = this.#base.querySelector("#pip-text")
+			if (pipText) {
+				pipText.remove()
+			}
+
+			this.#canvas.removeEventListener("click", this.playPauseEventHandler)
+			this.#pipWindow?.removeEventListener("pagehide", () => this.exitPictureInPicture())
+			this.#pipWindow?.close()
+			this.#pipWindow = undefined
+		} else {
+			console.warn("Failed to restore video element! Check DOM structure.")
+		}
+	}
+
+	private async togglePictureInPicture() {
+		if (!("documentPictureInPicture" in window)) {
+			console.warn("DocumentPictureInPicture API is not supported.")
+			return
+		}
+
+		try {
+			if (!this.pictureInPictureActive) {
+				await this.enterPictureInPicture()
+			} else {
+				this.exitPictureInPicture()
+			}
+		} catch (error) {
+			console.error("Error toggling Picture-in-Picture:", error)
 		}
 	}
 

@@ -2,6 +2,18 @@
  each element in dev tools and cleaned up some classes.
  Feel free to modify. */
 
+#base {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#base.pip-mode {
+	background-color: rgb(0, 0, 0);
+	height: 100%;
+}
+
 canvas#canvas {
 	z-index: 0;
 	background: rgb(28, 28, 28);
