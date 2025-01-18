@@ -259,6 +259,8 @@ export class VideoMoq extends HTMLElement {
 
 			this.#volumeButton.addEventListener("click", this.toggleMuteEventHandler)
 
+			this.#base.addEventListener("mouseenter", this.onMouseEnterHandler)
+			this.#base.addEventListener("mouseleave", this.onMouseLeaveHandler)
 			this.#canvas.addEventListener("mouseenter", this.onMouseEnterHandler)
 			this.#canvas.addEventListener("mouseleave", this.onMouseLeaveHandler)
 			this.#controls.addEventListener("mouseenter", this.onMouseEnterHandler)
