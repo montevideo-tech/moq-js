@@ -23,6 +23,7 @@ export class VideoMoq extends HTMLElement {
 	private onMouseLeaveHandler: (event: Event) => void
 	private toggleMuteEventHandler: (event: Event) => void
 	private toggleShowTrackEventHandler: (event: Event) => void
+	private toggleFullscreenEventHandler: (event: Event) => void
 
 	// HTML Elements
 	#canvas?: HTMLCanvasElement
@@ -31,6 +32,7 @@ export class VideoMoq extends HTMLElement {
 	#volumeButton?: HTMLButtonElement
 	#trackButton?: HTMLButtonElement
 	#trackList?: HTMLUListElement
+	#fullscreenButton?: HTMLButtonElement
 
 	// State
 	private player: Player | null = null
@@ -63,6 +65,22 @@ export class VideoMoq extends HTMLElement {
 		} else {
 			this.unmute().catch((err) => {
 				console.error("Error unmuting:", err)
+			})
+		}
+	}
+
+	get fullscreen(): boolean {
+		return document.fullscreenElement === this.shadow.querySelector("#base")
+	}
+
+	set fullscreen(fullscreen: boolean) {
+		if (fullscreen) {
+			this.enterFullscreen().catch((err) => {
+				console.error("Error entering fullscreen:", err)
+			})
+		} else {
+			this.exitFullscreen().catch((err) => {
+				console.error("Error exiting fullscreen:", err)
 			})
 		}
 	}
@@ -107,6 +125,8 @@ export class VideoMoq extends HTMLElement {
 		this.onMouseEnterHandler = this.toggleShowControls.bind(this, true)
 		this.onMouseLeaveHandler = this.toggleShowControls.bind(this, false)
 		this.toggleShowTrackEventHandler = this.toggleShowTracks.bind(this)
+		this.toggleFullscreenEventHandler = this.toggleFullscreen.bind(this)
+		this.onFullscreenChange = this.onFullscreenChange.bind(this)
 	}
 
 	/**
@@ -210,6 +230,9 @@ export class VideoMoq extends HTMLElement {
 					</button>
 					<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
 					</ul>
+					<button id="fullscreen" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
+						⛶
+					</button>
 				</div>
 			</div>`
 			base.appendChild(controlsElement.children[0])
@@ -219,6 +242,7 @@ export class VideoMoq extends HTMLElement {
 			this.#volumeButton = this.shadow.querySelector("#volume")!
 			this.#trackButton = this.shadow.querySelector("#track")!
 			this.#trackList = this.shadow.querySelector("ul#tracklist")!
+			this.#fullscreenButton = this.shadow.querySelector("#fullscreen")!
 
 			this.#canvas.addEventListener("click", this.playPauseEventHandler)
 
@@ -232,6 +256,14 @@ export class VideoMoq extends HTMLElement {
 			this.#controls.addEventListener("mouseleave", this.onMouseLeaveHandler)
 
 			this.#trackButton.addEventListener("click", this.toggleShowTrackEventHandler)
+			this.#fullscreenButton.addEventListener("click", this.toggleFullscreenEventHandler)
+
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "f") {
+					this.toggleFullscreenEventHandler(e)
+				}
+			})
+			document.addEventListener("fullscreenchange", () => this.onFullscreenChange())
 		}
 
 		const width = this.parseDimension(this.getAttribute("width"), -1)
@@ -261,6 +293,10 @@ export class VideoMoq extends HTMLElement {
 		this.#controls?.removeEventListener("mouseleave", this.onMouseLeaveHandler)
 
 		this.#trackButton?.removeEventListener("click", this.toggleShowTrackEventHandler)
+		this.#fullscreenButton?.removeEventListener("click", this.toggleFullscreenEventHandler)
+
+		document.removeEventListener("keydown", this.toggleFullscreenEventHandler)
+		document.removeEventListener("fullscreenchange", () => this.onFullscreenChange())
 
 		if (!this.player) return
 		await this.player.close()
@@ -307,7 +343,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PAUSE_SVG
 					this.#playButton.ariaLabel = "Pause"
-				})
+			  })
 			: Promise.resolve()
 	}
 
@@ -317,7 +353,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PLAY_SVG
 					this.#playButton.ariaLabel = "Play"
-				})
+			  })
 			: Promise.resolve()
 	}
 
@@ -345,7 +381,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Mute"
 					this.#volumeButton.innerText = "🔊"
-				})
+			  })
 			: Promise.resolve()
 	}
 
@@ -355,8 +391,45 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Unmute"
 					this.#volumeButton.innerText = "🔇"
-				})
+			  })
 			: Promise.resolve()
+	}
+
+	private toggleFullscreen() {
+		this.fullscreen = !document.fullscreenElement
+	}
+
+	private async enterFullscreen() {
+		try {
+			const base = this.shadow.querySelector("#base")
+			if (base) {
+				await base.requestFullscreen()
+			}
+		} catch (error) {
+			console.error("Error entering fullscreen:", error)
+		}
+	}
+
+	private async exitFullscreen() {
+		try {
+			await document.exitFullscreen()
+		} catch (error) {
+			console.error("Error exiting fullscreen:", error)
+		}
+	}
+
+	private onFullscreenChange() {
+		const isFullscreen = document.fullscreenElement !== null
+
+		if (this.#fullscreenButton) {
+			if (isFullscreen) {
+				this.#fullscreenButton.innerHTML = "⇲"
+				this.#fullscreenButton.ariaLabel = "Exit full screen"
+			} else {
+				this.#fullscreenButton.innerHTML = "⛶"
+				this.#fullscreenButton.ariaLabel = "Full screen"
+			}
+		}
 	}
 
 	#showTracks = false

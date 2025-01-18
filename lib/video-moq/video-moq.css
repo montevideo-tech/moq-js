@@ -5,6 +5,7 @@
 canvas#canvas {
 	z-index: 0;
 	background: rgb(28, 28, 28);
+	object-fit: contain;
 }
 
 #controls {
