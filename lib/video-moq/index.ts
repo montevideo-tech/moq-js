@@ -1,4 +1,6 @@
 import Player from "../playback/index"
+import { FULLSCREEN_BUTTON, PICTURE_IN_PICTURE_BUTTON } from "./control-buttons"
+import { ENTER_PIP_SVG, EXIT_PIP_SVG, PAUSE_SVG, PLAY_SVG } from "./icons"
 
 /**
  * This stylesheet is self contained within the shadow root
@@ -6,31 +8,6 @@ import Player from "../playback/index"
  * the document's style.
  */
 import STYLE_SHEET from "./video-moq.css"
-
-const PLAY_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
-					<path d="M3 22v-20l18 10-18 10z" />
-				</svg>`
-const PAUSE_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-6 w-6">
-					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-				</svg>`
-
-const ENTER_PIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" class="absolute h-4" viewBox="0 0 24 24">
-					<g>
-						<path
-							fill="#fff"
-							d="M21 3a1 1 0 0 1 1 1v7h-2V5H4v14h6v2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h18zm0 10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h8zm-9.5-6L9.457 9.043l2.25 2.25-1.414 1.414-2.25-2.25L6 12.5V7h5.5z"
-						/>
-					</g>
-				</svg>`
-
-const EXIT_PIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" class="absolute h-4" viewBox="0 0 24 24">
-					<g>
-						<path
-							fill="#fff"
-							d="M21 3a1 1 0 0 1 1 1v7h-2V5H4v14h6v2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h18zm0 10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-8a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h8zm-1 2h-6v4h6v-4zM6.707 6.293l2.25 2.25L11 6.5V12H5.5l2.043-2.043-2.25-2.25 1.414-1.414z"
-						/>
-					</g>
-				</svg>`
 
 export class VideoMoq extends HTMLElement {
 	private shadow: ShadowRoot
@@ -248,13 +225,6 @@ export class VideoMoq extends HTMLElement {
 
 		if (this.controls !== null) {
 			const controlsElement = document.createElement("div")
-			const pipButtonHTML = window.documentPictureInPicture
-				? `
-					<button id="picture-in-picture" aria-label="Enter picture-in-picture" class="relative flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-80 focus:bg-black-80 focus:outline-none">
-						${ENTER_PIP_SVG}
-					</button>
-				`
-				: ""
 			controlsElement.innerHTML = /* html */ `
 			<div id="controls" class="absolute opacity-0 bottom-4 flex h-[40px] w-full items-center gap-[4px] rounded transition-opacity duration-200" >
 				<button id="play" class="absolute bottom-0 left-4 flex h-8 w-12 items-center justify-center rounded bg-black-70 px-2 py-2 shadow-lg hover:bg-black-80 focus:bg-black-100 focus:outline-none">
@@ -269,10 +239,8 @@ export class VideoMoq extends HTMLElement {
 					</button>
 					<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
 					</ul>
-					${pipButtonHTML}
-					<button id="fullscreen" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
-						⛶
-					</button>
+					${PICTURE_IN_PICTURE_BUTTON}
+					${FULLSCREEN_BUTTON}
 				</div>
 			</div>`
 			this.#base.appendChild(controlsElement.children[0])
