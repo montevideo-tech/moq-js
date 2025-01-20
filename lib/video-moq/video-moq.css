@@ -23,6 +23,11 @@ canvas#canvas {
 #controls {
 	z-index: 10;
 }
+
+#controls:focus-within {
+	opacity: 1;
+}
+
 #controls button {
 	cursor: pointer;
 }
