@@ -1,5 +1,5 @@
 import Player from "../playback/index"
-import { FULLSCREEN_BUTTON, PICTURE_IN_PICTURE_BUTTON } from "./control-buttons"
+import { FULLSCREEN_BUTTON, PICTURE_IN_PICTURE_BUTTON, VOLUME_CONTROL } from "./control-buttons"
 import { ENTER_PIP_SVG, EXIT_PIP_SVG, PAUSE_SVG, PLAY_SVG } from "./icons"
 
 /**
@@ -17,6 +17,7 @@ export class VideoMoq extends HTMLElement {
 	private onMouseEnterHandler: (event: Event) => void
 	private onMouseLeaveHandler: (event: Event) => void
 	private toggleMuteEventHandler: (event: Event) => void
+	private setVolume: (event: Event) => void
 	private toggleShowTrackEventHandler: (event: Event) => void
 	private toggleFullscreenEventHandler: (event: Event) => void
 	private togglePictureInPictureEventHandler: (event: Event) => void
@@ -27,6 +28,7 @@ export class VideoMoq extends HTMLElement {
 	#playButton?: HTMLButtonElement
 	#controls?: HTMLElement
 	#volumeButton?: HTMLButtonElement
+	#volumeRange?: HTMLInputElement
 	#trackButton?: HTMLButtonElement
 	#trackList?: HTMLUListElement
 	#fullscreenButton?: HTMLButtonElement
@@ -35,6 +37,7 @@ export class VideoMoq extends HTMLElement {
 
 	// State
 	private player: Player | null = null
+	private previousVolume: number = 1
 
 	get src(): string | null {
 		return this.getAttribute("src")
@@ -128,6 +131,12 @@ export class VideoMoq extends HTMLElement {
 		this.togglePictureInPictureEventHandler = () => {
 			this.togglePictureInPicture().catch((err) => {
 				console.error("Error toggling picture-in-picture: ", err)
+			})
+		}
+
+		this.setVolume = (e: Event) => {
+			this.handleVolumeChange(e as Event & { currentTarget: HTMLInputElement }).catch((err) => {
+				console.error("Error setting volume: ", err)
 			})
 		}
 
@@ -231,9 +240,7 @@ export class VideoMoq extends HTMLElement {
 					${PLAY_SVG}
 				</button>
 				<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black-70 p-2">
-					<button id="volume" aria-label="Unmute" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-80 focus:bg-black-80 focus:outline-none">
-						🔇
-					</button>
+					${VOLUME_CONTROL}
 					<button id="track" aria-label="Select Track" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
 						⚙️
 					</button>
@@ -248,6 +255,7 @@ export class VideoMoq extends HTMLElement {
 			this.#controls = this.shadow.querySelector("#controls")!
 			this.#playButton = this.shadow.querySelector("#play")!
 			this.#volumeButton = this.shadow.querySelector("#volume")!
+			this.#volumeRange = this.shadow.querySelector("#volume-range")!
 			this.#trackButton = this.shadow.querySelector("#track")!
 			this.#trackList = this.shadow.querySelector("ul#tracklist")!
 			this.#fullscreenButton = this.shadow.querySelector("#fullscreen")!
@@ -258,6 +266,7 @@ export class VideoMoq extends HTMLElement {
 			this.#playButton.addEventListener("click", this.playPauseEventHandler)
 
 			this.#volumeButton.addEventListener("click", this.toggleMuteEventHandler)
+			this.#volumeRange?.addEventListener("input", this.setVolume)
 
 			this.#base.addEventListener("mouseenter", this.onMouseEnterHandler)
 			this.#base.addEventListener("mouseleave", this.onMouseLeaveHandler)
@@ -298,6 +307,7 @@ export class VideoMoq extends HTMLElement {
 		this.#playButton?.removeEventListener("click", this.playPauseEventHandler)
 
 		this.#volumeButton?.removeEventListener("click", this.toggleMuteEventHandler)
+		this.#volumeRange?.removeEventListener("input", this.setVolume)
 
 		this.#canvas?.removeEventListener("mouseenter", this.onMouseEnterHandler)
 		this.#canvas?.removeEventListener("mouseleave", this.onMouseLeaveHandler)
@@ -394,6 +404,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Mute"
 					this.#volumeButton.innerText = "🔊"
+					this.#volumeRange!.value = this.previousVolume.toString()
 				})
 			: Promise.resolve()
 	}
@@ -404,8 +415,22 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Unmute"
 					this.#volumeButton.innerText = "🔇"
+					this.previousVolume = parseFloat(this.#volumeRange!.value)
+					this.#volumeRange!.value = "0"
 				})
 			: Promise.resolve()
+	}
+
+	private handleVolumeChange = async (e: Event & { currentTarget: HTMLInputElement }) => {
+		const volume = parseFloat(e.currentTarget.value)
+		if (volume === 0) {
+			await this.mute()
+		} else {
+			await this.unmute()
+		}
+
+		this.#volumeRange!.value = volume.toString()
+		await this.player?.setVolume(volume)
 	}
 
 	private toggleFullscreen() {
