@@ -1,5 +1,5 @@
 <head>
-	<script src="./moq-player/moq-player.iife.js"></script>
+	<script src="/moq-player/moq-simple-player.iife.js"></script>
 </head>
 <body>
 	<canvas id="canvas"></canvas>
@@ -13,7 +13,7 @@
 			namespace: "bbb",
 		};
 		var player = null;
-		moqplayer.create(config, 0).then((p) => {
+		MoqSimplePlayer.create(config, 0).then((p) => {
 			player = p;
 			player.addEventListener("play", (e) => console.log("Received play event", e.detail))
 				player.addEventListener("pause", (e) => console.log("Received pause event", e.detail))
@@ -37,7 +37,7 @@
 		});
 		
 		playButton.addEventListener("click", () => {
-			player.play();
+			player.togglePlayPause();
 		});
 	</script>
 </body>
