@@ -97,6 +97,10 @@ export default class Backend {
 		this.#audio?.setVolume(newVolume)
 	}
 
+	getVolume(): number {
+		return this.#audio ? this.#audio.getVolume() : 0
+	}
+
 	async close() {
 		this.#worker.terminate()
 		await this.#audio?.context.close()
