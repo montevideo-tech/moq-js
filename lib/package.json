@@ -1,10 +1,11 @@
 {
-	"name": "moq-player",
-	"version": "0.0.1",
+	"name": "@moq-js/player",
+	"version": "0.2.0",
 	"description": "Media over QUIC library",
 	"license": "(MIT OR Apache-2.0)",
 	"wc-player": "video-moq/index.ts",
 	"simple-player": "playback/index.ts",
+	"files": ["dist"],
 	"exports": {
 		".": {
 			"import": "./dist/moq-player.esm.js",
@@ -69,5 +70,9 @@
 			"last 1 firefox version",
 			"last 1 safari version"
 		]
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/~englishm/moq-js"
 	}
 }

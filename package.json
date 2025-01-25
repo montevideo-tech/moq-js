@@ -1,7 +1,6 @@
 {
 	"name": "moq-js",
 	"type": "module",
-	"private": true,
 	"workspaces": [
 		"lib",
 		"web",
