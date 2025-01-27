@@ -49,4 +49,8 @@ export class Audio {
 	public setVolume(newVolume: number) {
 		this.volumeNode.gain.setTargetAtTime(newVolume, this.context.currentTime, 0.01)
 	}
+
+	public getVolume(): number {
+		return this.volumeNode.gain.value
+	}
 }

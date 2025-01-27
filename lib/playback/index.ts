@@ -34,6 +34,7 @@ export default class Player extends EventTarget {
 	#videoTrackName: string
 	#muted: boolean
 	#paused: boolean
+	#liveStartTime: number = Date.now()
 
 	// Running is a promise that resolves when the player is closed.
 	// #close is called with no error, while #abort is called with an error.
@@ -105,6 +106,7 @@ export default class Player extends EventTarget {
 		tracks.forEach((track) => {
 			this.#runTrack(track)
 		})
+		this.#startEmittingTimeUpdate()
 	}
 
 	async #runInit(namespace: string, name: string) {
@@ -206,6 +208,12 @@ export default class Player extends EventTarget {
 		})
 	}
 
+	#startEmittingTimeUpdate() {
+		setInterval(() => {
+			this.dispatchEvent(new Event("timeupdate"))
+		}, 1000) // Emit timeupdate every second
+	}
+
 	getCatalog() {
 		return this.#catalog
 	}
@@ -225,6 +233,10 @@ export default class Player extends EventTarget {
 
 	getAudioTracks() {
 		return this.#catalog.tracks.filter(Catalog.isAudioTrack).map((track) => track.name)
+	}
+
+	getCurrentTime() {
+		return (Date.now() - this.#liveStartTime) / 1000
 	}
 
 	isPaused() {
@@ -355,6 +367,8 @@ export default class Player extends EventTarget {
 			const audioPromise = this.unsubscribeFromTrack(this.#audioTrackName)
 			const videoPromise = this.unsubscribeFromTrack(this.#videoTrackName)
 			super.dispatchEvent(new CustomEvent("pause", { detail: { track: this.#videoTrackName } }))
+			console.log("dispatchEvent pause")
+
 			this.#backend.pause()
 			await Promise.all([mutePromise, audioPromise, videoPromise])
 		}
@@ -367,6 +381,10 @@ export default class Player extends EventTarget {
 		} else if (newVolume > 0 && this.#muted) {
 			await this.mute(false)
 		}
+	}
+
+	getVolume(): number {
+		return this.#backend ? this.#backend.getVolume() : 0
 	}
 
 	/*
