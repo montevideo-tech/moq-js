@@ -1,0 +1,32 @@
+name: Publish moq-player
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build moq-player
+        run: npm run build --workspace=moq-player
+
+      - name: Add Readme to package
+        run: cp README.md lib/README.md
+
+      - name: Publish moq-player
+        working-directory: lib
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

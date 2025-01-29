@@ -139,6 +139,37 @@ export class Subscriber {
 
 		await subscribe.onData(reader)
 	}
+
+	async fetch(
+		namespace: string[],
+		track: string,
+		start_group: number,
+		start_object: number,
+		end_group: number,
+		end_object: number,
+	) {
+		const id = this.#subscribeNext++
+
+		const subscribe = new SubscribeSend(this.#control, id, namespace, track)
+		this.#subscribe.set(id, subscribe)
+
+		this.#trackToIDMap.set(track, id)
+
+		await this.#control.send({
+			kind: Control.Msg.Fetch,
+			id,
+			namespace,
+			name: track,
+			subscriber_priority: 127, // default to mid value, see: https://github.com/moq-wg/moq-transport/issues/504
+			group_order: Control.GroupOrder.Publisher,
+			start_group: start_group,
+			start_object: start_object,
+			end_group: end_group,
+			end_object: end_object,
+		})
+
+		return subscribe
+	}
 }
 
 export class AnnounceRecv {

@@ -63,6 +63,17 @@ export class Connection {
 		return this.#publisher.subscribed()
 	}
 
+	fetch(
+		namespace: string[],
+		track: string,
+		start_group: number,
+		start_object: number,
+		end_group: number,
+		end_object: number,
+	) {
+		return this.#subscriber.fetch(namespace, track, start_group, start_object, end_group, end_object)
+	}
+
 	async #runControl() {
 		// Receive messages until the connection is closed.
 		for (;;) {

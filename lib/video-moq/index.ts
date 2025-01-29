@@ -321,7 +321,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PAUSE_SVG
 					this.#playButton.ariaLabel = "Pause"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -331,7 +331,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#playButton) return
 					this.#playButton.innerHTML = PLAY_SVG
 					this.#playButton.ariaLabel = "Play"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -363,7 +363,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Mute"
 					this.#volumeButton.innerText = "🔊"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -373,7 +373,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Unmute"
 					this.#volumeButton.innerText = "🔇"
-			  })
+				})
 			: Promise.resolve()
 	}
 
@@ -476,7 +476,7 @@ export class VideoMoq extends HTMLElement {
 
 	set currentTime(value: number) {
 		if (value < this.duration) {
-			console.warn("Seeking within the buffer is not supported in live mode.")
+			this.player?.seek(value)
 		}
 	}
 

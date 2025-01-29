@@ -103,10 +103,22 @@ export default class Player extends EventTarget {
 		await Promise.all(Array.from(inits).map((init) => this.#runInit(...init)))
 
 		// Call #runTrack on each track
+		console.log("tracks", tracks)
+
 		tracks.forEach((track) => {
 			this.#runTrack(track)
 		})
+
+		this.#runTimeline()
+
 		this.#startEmittingTimeUpdate()
+	}
+
+	seek(currentTime: number) {
+		const currentTrack = this.getCurrentTrack()
+		if (currentTrack && currentTrack.namespace) {
+			this.#connection.fetch(currentTrack.namespace, currentTrack.name, 0, 0, 0, 0)
+		}
 	}
 
 	async #runInit(namespace: string, name: string) {
@@ -190,11 +202,38 @@ export default class Player extends EventTarget {
 		}
 	}
 
+	async #timelineTrackTask() {
+		if (this.#paused) return
+		const currentTrack = this.getCurrentTrack()
+		if (!currentTrack?.namespace) return
+		const eventOfFirstSegmentSent = false
+		const sub = await this.#connection.subscribe(currentTrack.namespace, ".timeline")
+
+		try {
+			const segment = await Promise.race([sub.data(), this.#running])
+			if (!segment) return
+			for (;;) {
+				console.log(await segment.read())
+			}
+		} catch (error) {
+			if (error instanceof Error && error.message.includes("cancelled")) {
+				console.log("Cancelled subscription to track: ", currentTrack.namespace)
+			} else {
+				console.error("Error in #runTrack:", error)
+				super.dispatchEvent(new CustomEvent("error", { detail: error }))
+			}
+		} finally {
+			await sub.close()
+		}
+	}
+
 	#runTrack(track: Catalog.Track) {
 		if (this.#trackTasks.has(track.name)) {
 			console.warn(`Already exist a runTrack task for the track: ${track.name}`)
 			return
 		}
+
+		console.log("track name: ", track.name)
 
 		const task = (async () => this.#trackTask(track))()
 
@@ -206,6 +245,10 @@ export default class Player extends EventTarget {
 		}).finally(() => {
 			this.#trackTasks.delete(track.name)
 		})
+	}
+
+	#runTimeline() {
+		const task = (async () => this.#timelineTrackTask())()
 	}
 
 	#startEmittingTimeUpdate() {
