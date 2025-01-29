@@ -1,4 +1,6 @@
 import Player from "../playback/index"
+import { FULLSCREEN_BUTTON, PICTURE_IN_PICTURE_BUTTON, VOLUME_CONTROL } from "./control-buttons"
+import { ENTER_PIP_SVG, EXIT_PIP_SVG, PAUSE_SVG, PLAY_SVG } from "./icons"
 
 /**
  * This stylesheet is self contained within the shadow root
@@ -6,13 +8,6 @@ import Player from "../playback/index"
  * the document's style.
  */
 import STYLE_SHEET from "./video-moq.css"
-
-const PLAY_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-4 w-4">
-					<path d="M3 22v-20l18 10-18 10z" />
-				</svg>`
-const PAUSE_SVG = /*html*/ `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" class="h-6 w-6">
-					<path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-				</svg>`
 
 export class VideoMoq extends HTMLElement {
 	private shadow: ShadowRoot
@@ -22,18 +17,27 @@ export class VideoMoq extends HTMLElement {
 	private onMouseEnterHandler: (event: Event) => void
 	private onMouseLeaveHandler: (event: Event) => void
 	private toggleMuteEventHandler: (event: Event) => void
+	private setVolume: (event: Event) => void
 	private toggleShowTrackEventHandler: (event: Event) => void
+	private toggleFullscreenEventHandler: (event: Event) => void
+	private togglePictureInPictureEventHandler: (event: Event) => void
 
 	// HTML Elements
+	#base?: HTMLDivElement
 	#canvas?: HTMLCanvasElement
 	#playButton?: HTMLButtonElement
 	#controls?: HTMLElement
 	#volumeButton?: HTMLButtonElement
+	#volumeRange?: HTMLInputElement
 	#trackButton?: HTMLButtonElement
 	#trackList?: HTMLUListElement
+	#fullscreenButton?: HTMLButtonElement
+	#pipButton?: HTMLButtonElement
+	#pipWindow?: WindowWithPiP
 
 	// State
 	private player: Player | null = null
+	private previousVolume: number = 1
 
 	get src(): string | null {
 		return this.getAttribute("src")
@@ -65,6 +69,26 @@ export class VideoMoq extends HTMLElement {
 				console.error("Error unmuting:", err)
 			})
 		}
+	}
+
+	get fullscreen(): boolean {
+		return document.fullscreenElement === this.#base
+	}
+
+	set fullscreen(fullscreen: boolean) {
+		if (fullscreen) {
+			this.enterFullscreen().catch((err) => {
+				console.error("Error entering fullscreen:", err)
+			})
+		} else {
+			this.exitFullscreen().catch((err) => {
+				console.error("Error exiting fullscreen:", err)
+			})
+		}
+	}
+
+	get pictureInPictureActive(): boolean {
+		return this.#pipWindow !== undefined
 	}
 
 	get trackNum(): string | null {
@@ -104,9 +128,23 @@ export class VideoMoq extends HTMLElement {
 			})
 		}
 
+		this.togglePictureInPictureEventHandler = () => {
+			this.togglePictureInPicture().catch((err) => {
+				console.error("Error toggling picture-in-picture: ", err)
+			})
+		}
+
+		this.setVolume = (e: Event) => {
+			this.handleVolumeChange(e as Event & { currentTarget: HTMLInputElement }).catch((err) => {
+				console.error("Error setting volume: ", err)
+			})
+		}
+
 		this.onMouseEnterHandler = this.toggleShowControls.bind(this, true)
 		this.onMouseLeaveHandler = this.toggleShowControls.bind(this, false)
 		this.toggleShowTrackEventHandler = this.toggleShowTracks.bind(this)
+		this.toggleFullscreenEventHandler = this.toggleFullscreen.bind(this)
+		this.onFullscreenChange = this.onFullscreenChange.bind(this)
 	}
 
 	/**
@@ -164,14 +202,14 @@ export class VideoMoq extends HTMLElement {
 
 		this.shadow.innerHTML = /*html*/ `
 			<style>${STYLE_SHEET}</style>
-			<div id="base" class="relative">
+			<div id="base">
 				<div id="error"></div>
 				<canvas id="canvas" class="h-full w-full rounded-lg">
 				</canvas>
 			</div>
 		`
 
-		const base: HTMLDivElement = this.shadow.querySelector("#base")!
+		this.#base = this.shadow.querySelector("#base")!
 		this.#canvas = this.shadow.querySelector("canvas#canvas")!
 
 		if (!this.src) {
@@ -202,50 +240,65 @@ export class VideoMoq extends HTMLElement {
 					${PLAY_SVG}
 				</button>
 				<div class="absolute bottom-0 right-4 flex h-[32px] w-fit items-center justify-evenly gap-[4px] rounded bg-black-70 p-2">
-					<button id="volume" aria-label="Unmute" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-80 focus:bg-black-80 focus:outline-none">
-						🔇
-					</button>
+					${VOLUME_CONTROL}
 					<button id="track" aria-label="Select Track" class="flex h-4 w-0 items-center justify-center rounded bg-transparent p-4 text-white hover:bg-black-100 focus:bg-black-80 focus:outline-none">
 						⚙️
 					</button>
 					<ul id="tracklist" class="absolute bottom-6 right-0 mt-2 w-40 rounded bg-black-80 p-0 text-white shadow-lg">
 					</ul>
+					${PICTURE_IN_PICTURE_BUTTON}
+					${FULLSCREEN_BUTTON}
 				</div>
 			</div>`
-			base.appendChild(controlsElement.children[0])
+			this.#base.appendChild(controlsElement.children[0])
 
 			this.#controls = this.shadow.querySelector("#controls")!
 			this.#playButton = this.shadow.querySelector("#play")!
 			this.#volumeButton = this.shadow.querySelector("#volume")!
+			this.#volumeRange = this.shadow.querySelector("#volume-range")!
 			this.#trackButton = this.shadow.querySelector("#track")!
 			this.#trackList = this.shadow.querySelector("ul#tracklist")!
+			this.#fullscreenButton = this.shadow.querySelector("#fullscreen")!
+			this.#pipButton = this.shadow.querySelector("#picture-in-picture")!
 
 			this.#canvas.addEventListener("click", this.playPauseEventHandler)
 
 			this.#playButton.addEventListener("click", this.playPauseEventHandler)
 
 			this.#volumeButton.addEventListener("click", this.toggleMuteEventHandler)
+			this.#volumeRange?.addEventListener("input", this.setVolume)
 
+			this.#base.addEventListener("mouseenter", this.onMouseEnterHandler)
+			this.#base.addEventListener("mouseleave", this.onMouseLeaveHandler)
 			this.#canvas.addEventListener("mouseenter", this.onMouseEnterHandler)
 			this.#canvas.addEventListener("mouseleave", this.onMouseLeaveHandler)
 			this.#controls.addEventListener("mouseenter", this.onMouseEnterHandler)
 			this.#controls.addEventListener("mouseleave", this.onMouseLeaveHandler)
 
 			this.#trackButton.addEventListener("click", this.toggleShowTrackEventHandler)
+			this.#fullscreenButton.addEventListener("click", this.toggleFullscreenEventHandler)
+			this.#pipButton.addEventListener("click", this.togglePictureInPictureEventHandler)
+
+			document.addEventListener("keydown", (e) => {
+				if (e.key === "f") {
+					this.toggleFullscreenEventHandler(e)
+				}
+			})
+			document.addEventListener("fullscreenchange", () => this.onFullscreenChange())
 		}
 
 		const width = this.parseDimension(this.getAttribute("width"), -1)
 		const height = this.parseDimension(this.getAttribute("height"), -1)
 
 		if (width != -1) {
-			base.style.width = width.toString() + "px"
+			this.#base.style.width = width.toString() + "px"
 		}
 		if (height != -1) {
-			base.style.height = height.toString() + "px"
+			this.#base.style.height = height.toString() + "px"
 		}
 		const aspectRatio = this.getAttribute("aspectRatio")
 		if (aspectRatio !== null) {
-			base.style.aspectRatio = aspectRatio.toString()
+			this.#base.style.aspectRatio = aspectRatio.toString()
 		}
 	}
 
@@ -254,6 +307,7 @@ export class VideoMoq extends HTMLElement {
 		this.#playButton?.removeEventListener("click", this.playPauseEventHandler)
 
 		this.#volumeButton?.removeEventListener("click", this.toggleMuteEventHandler)
+		this.#volumeRange?.removeEventListener("input", this.setVolume)
 
 		this.#canvas?.removeEventListener("mouseenter", this.onMouseEnterHandler)
 		this.#canvas?.removeEventListener("mouseleave", this.onMouseLeaveHandler)
@@ -261,6 +315,11 @@ export class VideoMoq extends HTMLElement {
 		this.#controls?.removeEventListener("mouseleave", this.onMouseLeaveHandler)
 
 		this.#trackButton?.removeEventListener("click", this.toggleShowTrackEventHandler)
+		this.#fullscreenButton?.removeEventListener("click", this.toggleFullscreenEventHandler)
+		this.#pipButton?.removeEventListener("click", this.togglePictureInPictureEventHandler)
+
+		document.removeEventListener("keydown", this.toggleFullscreenEventHandler)
+		document.removeEventListener("fullscreenchange", () => this.onFullscreenChange())
 
 		if (!this.player) return
 		await this.player.close()
@@ -345,6 +404,7 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Mute"
 					this.#volumeButton.innerText = "🔊"
+					this.#volumeRange!.value = this.previousVolume.toString()
 				})
 			: Promise.resolve()
 	}
@@ -355,8 +415,150 @@ export class VideoMoq extends HTMLElement {
 					if (!this.#volumeButton) return
 					this.#volumeButton.ariaLabel = "Unmute"
 					this.#volumeButton.innerText = "🔇"
+					this.previousVolume = parseFloat(this.#volumeRange!.value)
+					this.#volumeRange!.value = "0"
 				})
 			: Promise.resolve()
+	}
+
+	private handleVolumeChange = async (e: Event & { currentTarget: HTMLInputElement }) => {
+		const volume = parseFloat(e.currentTarget.value)
+		if (volume === 0) {
+			await this.mute()
+		} else {
+			await this.unmute()
+		}
+
+		this.#volumeRange!.value = volume.toString()
+		await this.player?.setVolume(volume)
+	}
+
+	private toggleFullscreen() {
+		this.fullscreen = !document.fullscreenElement
+	}
+
+	private async enterFullscreen() {
+		try {
+			if (this.#base) {
+				await this.#base.requestFullscreen()
+			}
+		} catch (error) {
+			console.error("Error entering fullscreen:", error)
+		}
+	}
+
+	private async exitFullscreen() {
+		try {
+			await document.exitFullscreen()
+		} catch (error) {
+			console.error("Error exiting fullscreen:", error)
+		}
+	}
+
+	private onFullscreenChange() {
+		const isFullscreen = document.fullscreenElement !== null
+
+		if (this.#fullscreenButton) {
+			if (isFullscreen) {
+				this.#fullscreenButton.innerHTML = "⇲"
+				this.#fullscreenButton.ariaLabel = "Exit full screen"
+			} else {
+				this.#fullscreenButton.innerHTML = "⛶"
+				this.#fullscreenButton.ariaLabel = "Full screen"
+			}
+		}
+	}
+
+	private async enterPictureInPicture() {
+		if (!this.#pipButton) {
+			return
+		}
+
+		if (!this.#canvas) {
+			console.warn("Canvas element not found.")
+			return
+		}
+
+		if (!this.#base) {
+			console.warn("Base element not found.")
+			return
+		}
+
+		this.#pipWindow =
+			window.documentPictureInPicture &&
+			(await window.documentPictureInPicture.requestWindow({
+				width: 320,
+				height: 180,
+			}))
+
+		if (!this.#pipWindow) {
+			console.warn("Picture-in-Picture window not found.")
+			return
+		}
+
+		// Move the canvas to the PiP window
+		this.#pipWindow.document.body.append(this.#canvas)
+		this.#canvas.style.width = "100%"
+		this.#canvas.style.height = "100%"
+
+		this.#pipButton.innerHTML = EXIT_PIP_SVG
+
+		this.#base.classList.add("pip-mode")
+
+		const pipText = document.createElement("div")
+		pipText.id = "pip-text"
+		pipText.textContent = "Picture-in-Picture Mode"
+		pipText.style.color = "white"
+		pipText.style.textAlign = "center"
+		pipText.style.marginTop = "10px"
+		this.#base.appendChild(pipText)
+
+		this.#canvas.addEventListener("click", this.playPauseEventHandler)
+		this.#pipWindow?.addEventListener("pagehide", () => this.exitPictureInPicture())
+	}
+
+	private exitPictureInPicture() {
+		if (!this.#pipButton) {
+			return
+		}
+
+		if (this.#canvas && this.#base) {
+			// Restore the canvas to the base element
+			this.#base.append(this.#canvas)
+
+			this.#pipButton.innerHTML = ENTER_PIP_SVG
+
+			this.#base.classList.remove("pip-mode")
+
+			const pipText = this.#base.querySelector("#pip-text")
+			if (pipText) {
+				pipText.remove()
+			}
+
+			this.#canvas.removeEventListener("click", this.playPauseEventHandler)
+			this.#pipWindow?.removeEventListener("pagehide", () => this.exitPictureInPicture())
+			this.#pipWindow?.close()
+			this.#pipWindow = undefined
+		} else {
+			console.warn("Failed to restore video element! Check DOM structure.")
+		}
+	}
+
+	private async togglePictureInPicture() {
+		if (!("documentPictureInPicture" in window)) {
+			console.warn("DocumentPictureInPicture API is not supported.")
+			return
+		}
+
+		try {
+			if (!this.pictureInPictureActive) {
+				await this.enterPictureInPicture()
+			} else {
+				this.exitPictureInPicture()
+			}
+		} catch (error) {
+			console.error("Error toggling Picture-in-Picture:", error)
+		}
 	}
 
 	#showTracks = false
