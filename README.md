@@ -150,7 +150,7 @@ npm install
 npm run dev
 ```
 
-In [localhost:3000](http://localhost:3000/) you will have the samples running.
+Open [localhost:3000](http://localhost:3000/) in a browser to see the samples running.
 
 ## License
 
