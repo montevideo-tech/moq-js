@@ -33,7 +33,7 @@ To start the development build process (with Rollup):
 npm run dev
 ```
 
-This build the library continuously as you make changes.
+This builds the library continuously as you make changes.
 
 ## License
 
