@@ -36,25 +36,6 @@ export default function Watch(props: { name: string }) {
 		Player.create({ url, fingerprint, canvas, namespace }, tracknum)
 			.then((player) => {
 				setPlayer(player)
-				player.addEventListener("play", (e: CustomEvent) => console.log("Received play event", e.detail))
-				player.addEventListener("pause", (e: CustomEvent) => console.log("Received pause event", e.detail))
-				player.addEventListener("loadeddata", () => console.log("Received loadeddata event"))
-				player.addEventListener("volumechange", (e: CustomEvent) =>
-					console.log("Received volumechange event", e.detail),
-				)
-				player.addEventListener("unsubscribestared", (e: CustomEvent) =>
-					console.log("Received unsubscribestared event", e.detail),
-				)
-				player.addEventListener("unsubscribedone", (e: CustomEvent) =>
-					console.log("Received unsubscribedone event", e.detail),
-				)
-				player.addEventListener("subscribestared", (e: CustomEvent) =>
-					console.log("Received subscribestared event", e.detail),
-				)
-				player.addEventListener("subscribedone", (e: CustomEvent) =>
-					console.log("Received subscribedone event", e.detail),
-				)
-				player.addEventListener("waitingforkeyframe", () => console.log("Received waitingforkeyframe event"))
 			})
 			.catch(setError)
 	})
@@ -126,7 +107,7 @@ export default function Watch(props: { name: string }) {
 				<canvas
 					ref={canvas}
 					onClick={handlePlayPause}
-          class="h-full w-full rounded-lg object-contain"
+					class="h-full w-full rounded-lg object-contain"
 					id="video-canvas"
 					onMouseEnter={() => setHovered(true)}
 					onMouseLeave={() => setHovered(false)}
