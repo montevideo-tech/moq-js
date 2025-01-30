@@ -64,10 +64,12 @@ export class VideoMoq extends HTMLElement {
 			this.mute().catch((err) => {
 				console.error("Error muting:", err)
 			})
+			this.dispatchEvent(new Event("volumechange"))
 		} else {
 			this.unmute().catch((err) => {
 				console.error("Error unmuting:", err)
 			})
+			this.dispatchEvent(new Event("volumechange"))
 		}
 	}
 
@@ -177,6 +179,18 @@ export class VideoMoq extends HTMLElement {
 	private setPlayer(player: Player) {
 		this.player = player
 
+		this.player.addEventListener("play", () => this.dispatchEvent(new Event("play")))
+		this.player.addEventListener("pause", () => this.dispatchEvent(new Event("pause")))
+		this.player.addEventListener("loadeddata", () => this.dispatchEvent(new Event("loadeddata")))
+		this.player.addEventListener("volumechange", () => this.dispatchEvent(new Event("volumechange")))
+		this.player.addEventListener("timeupdate", () => {
+			const event = new CustomEvent("timeupdate", {
+				detail: { currentTime: this.player?.getCurrentTime() },
+			})
+			this.dispatchEvent(event)
+		})
+		this.player.addEventListener("error", (e) => this.dispatchEvent(new CustomEvent("error", { detail: e })))
+
 		if (!this.player.isPaused() && this.#playButton) {
 			this.#playButton.innerHTML = PAUSE_SVG
 			this.#playButton.ariaLabel = "Pause"
@@ -204,7 +218,7 @@ export class VideoMoq extends HTMLElement {
 			<style>${STYLE_SHEET}</style>
 			<div id="base">
 				<div id="error"></div>
-				<canvas id="canvas" class="h-full w-full rounded-lg">
+				<canvas id="canvas" class="h-full w-full">
 				</canvas>
 			</div>
 		`
@@ -378,6 +392,10 @@ export class VideoMoq extends HTMLElement {
 					this.#playButton.ariaLabel = "Play"
 				})
 			: Promise.resolve()
+	}
+
+	get paused(): boolean {
+		return this.player ? this.player.isPaused() : false
 	}
 
 	private async toggleMute() {
@@ -646,6 +664,33 @@ export class VideoMoq extends HTMLElement {
 		if (str == null) return def
 		const res = parseInt(str)
 		return isNaN(res) ? def : res
+	}
+
+	get duration(): number {
+		if (this.player) return this.player.getCurrentTime()
+		return 0
+	}
+
+	get currentTime(): number {
+		if (this.player) return this.player.getCurrentTime()
+		return 0
+	}
+
+	set currentTime(value: number) {
+		if (value < this.duration) {
+			console.warn("Seeking within the buffer is not supported in live mode.")
+		}
+	}
+
+	get volume(): number {
+		return this.player ? this.player.getVolume() : 0
+	}
+
+	set volume(value: number) {
+		if (this.player) {
+			void this.player.setVolume(value)
+			this.dispatchEvent(new Event("volumechange"))
+		}
 	}
 }
 
