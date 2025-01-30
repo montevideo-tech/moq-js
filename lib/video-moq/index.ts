@@ -79,7 +79,7 @@ export class VideoMoq extends HTMLElement {
 
 	set fullscreen(fullscreen: boolean) {
 		if (fullscreen) {
-			this.enterFullscreen().catch((err) => {
+			this.requestFullscreen().catch((err) => {
 				console.error("Error entering fullscreen:", err)
 			})
 		} else {
@@ -455,7 +455,7 @@ export class VideoMoq extends HTMLElement {
 		this.fullscreen = !document.fullscreenElement
 	}
 
-	private async enterFullscreen() {
+	public async requestFullscreen(): Promise<void> {
 		try {
 			if (this.#base) {
 				await this.#base.requestFullscreen()
@@ -465,7 +465,7 @@ export class VideoMoq extends HTMLElement {
 		}
 	}
 
-	private async exitFullscreen() {
+	public async exitFullscreen(): Promise<void> {
 		try {
 			await document.exitFullscreen()
 		} catch (error) {
