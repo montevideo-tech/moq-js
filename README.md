@@ -23,13 +23,13 @@ This library offers **two main approaches** to playing MoQ streams in a browser:
 Install the library from npm:
 
 ```bash
-npm install moq-player
+npm install @moq-js/player
 ```
 
 Or include via a `<script>` tag (for the IIFE build):
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/package@latest/dist/moq-player.iife.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@moq-js/player@latest/dist/moq-player.iife.js"></script>
 ```
 
 ## Usage
