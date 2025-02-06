@@ -226,8 +226,22 @@ export class VideoMoq extends HTMLElement {
 		this.#base = this.shadow.querySelector("#base")!
 		this.#canvas = this.shadow.querySelector("canvas#canvas")!
 
+		const width = this.parseDimension(this.getAttribute("width"), -1)
+		const height = this.parseDimension(this.getAttribute("height"), -1)
+
+		if (width != -1) {
+			this.#base.style.width = width.toString() + "px"
+		}
+		if (height != -1) {
+			this.#base.style.height = height.toString() + "px"
+		}
+		const aspectRatio = this.getAttribute("aspectRatio")
+		if (aspectRatio !== null) {
+			this.#base.style.aspectRatio = aspectRatio.toString()
+		}
+
 		if (!this.src) {
-			this.fail(new Error("No 'src' attribute provided for <video-moq>"))
+			this.fail(new Error("No 'src' attribute provided for &lt;video-moq&gt;"))
 			return
 		}
 
@@ -299,20 +313,6 @@ export class VideoMoq extends HTMLElement {
 				}
 			})
 			document.addEventListener("fullscreenchange", () => this.onFullscreenChange())
-		}
-
-		const width = this.parseDimension(this.getAttribute("width"), -1)
-		const height = this.parseDimension(this.getAttribute("height"), -1)
-
-		if (width != -1) {
-			this.#base.style.width = width.toString() + "px"
-		}
-		if (height != -1) {
-			this.#base.style.height = height.toString() + "px"
-		}
-		const aspectRatio = this.getAttribute("aspectRatio")
-		if (aspectRatio !== null) {
-			this.#base.style.aspectRatio = aspectRatio.toString()
 		}
 	}
 
@@ -653,10 +653,7 @@ export class VideoMoq extends HTMLElement {
 		const errorElement = this.shadow.querySelector("#error")
 
 		if (errorElement) {
-			errorElement.innerHTML = /*html*/ `
-				<div class="my-4 rounded-md bg-red-600 px-4 py-2 text-white">
-					<span class="font-bold">${this.error.name}:</span> ${this.error.message}
-				</div>`
+			errorElement.innerHTML = /*html*/ `<span class="font-bold">${this.error.name}:</span> ${this.error.message}`
 		}
 	}
 

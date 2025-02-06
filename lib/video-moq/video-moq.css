@@ -4,9 +4,10 @@
 
 #base {
 	position: relative;
-	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 640px;
+	height: 360px;
 }
 
 #base.pip-mode {
@@ -30,6 +31,17 @@ canvas#canvas {
 
 #controls button {
 	cursor: pointer;
+}
+
+#error {
+	position: absolute;
+	text-align: center;
+	color: #fff;
+	background-color: rgba(255, 0, 0, 0.8);
+	text-align: center;
+	width: 100%;
+	font-weight: bold;
+	line-height: 1.8;
 }
 
 .cursor-pointer {
