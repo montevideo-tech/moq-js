@@ -131,7 +131,7 @@ export class VideoMoq extends HTMLElement {
 		}
 
 		this.togglePictureInPictureEventHandler = () => {
-			this.togglePictureInPicture().catch((err) => {
+			this.requestPictureInPicture().catch((err) => {
 				console.error("Error toggling picture-in-picture: ", err)
 			})
 		}
@@ -487,10 +487,12 @@ export class VideoMoq extends HTMLElement {
 		}
 	}
 
-	private async enterPictureInPicture() {
-		if (!this.#pipButton) {
-			return
-		}
+	onLeavePictureinPicture() {
+		console.log("onleave PiP")
+	}
+
+	public async enterPictureInPicture(): Promise<void> {
+		console.log("request pip")
 
 		if (!this.#canvas) {
 			console.warn("Canvas element not found.")
@@ -519,32 +521,36 @@ export class VideoMoq extends HTMLElement {
 		this.#canvas.style.width = "100%"
 		this.#canvas.style.height = "100%"
 
-		this.#pipButton.innerHTML = EXIT_PIP_SVG
-
-		this.#base.classList.add("pip-mode")
-
-		const pipText = document.createElement("div")
-		pipText.id = "pip-text"
-		pipText.textContent = "Picture-in-Picture Mode"
-		pipText.style.color = "white"
-		pipText.style.textAlign = "center"
-		pipText.style.marginTop = "10px"
-		this.#base.appendChild(pipText)
-
-		this.#canvas.addEventListener("click", this.playPauseEventHandler)
-		this.#pipWindow?.addEventListener("pagehide", () => this.exitPictureInPicture())
-	}
-
-	private exitPictureInPicture() {
-		if (!this.#pipButton) {
-			return
+		if (this.controls != null && this.#pipButton) {
+			this.#pipButton.innerHTML = EXIT_PIP_SVG
 		}
 
+		const pipPlaceholder = document.createElement("div")
+		pipPlaceholder.id = "pip-text"
+		pipPlaceholder.textContent = "Picture-in-Picture Mode"
+		pipPlaceholder.style.color = "black"
+		pipPlaceholder.style.textAlign = "center"
+		pipPlaceholder.style.marginTop = "10px"
+		pipPlaceholder.style.width = "100%"
+		pipPlaceholder.style.height = "100%"
+		this.#base.appendChild(pipPlaceholder)
+
+		this.#pipWindow?.addEventListener("pagehide", () => this.leavePictureInPicture())
+
+		// this.#base.classList.add("pip-mode")
+
+		console.log("request pip end")
+	}
+
+	public leavePictureInPicture() {
+		console.log("exit Picture In Picture")
 		if (this.#canvas && this.#base) {
 			// Restore the canvas to the base element
 			this.#base.append(this.#canvas)
 
-			this.#pipButton.innerHTML = ENTER_PIP_SVG
+			if (this.controls != null && this.#pipButton) {
+				this.#pipButton.innerHTML = ENTER_PIP_SVG
+			}
 
 			this.#base.classList.remove("pip-mode")
 
@@ -553,8 +559,7 @@ export class VideoMoq extends HTMLElement {
 				pipText.remove()
 			}
 
-			this.#canvas.removeEventListener("click", this.playPauseEventHandler)
-			this.#pipWindow?.removeEventListener("pagehide", () => this.exitPictureInPicture())
+			this.#pipWindow?.removeEventListener("pagehide", () => this.leavePictureInPicture())
 			this.#pipWindow?.close()
 			this.#pipWindow = undefined
 		} else {
@@ -562,7 +567,9 @@ export class VideoMoq extends HTMLElement {
 		}
 	}
 
-	private async togglePictureInPicture() {
+	public async requestPictureInPicture() {
+		console.log("request pip")
+
 		if (!("documentPictureInPicture" in window)) {
 			console.warn("DocumentPictureInPicture API is not supported.")
 			return
@@ -572,7 +579,7 @@ export class VideoMoq extends HTMLElement {
 			if (!this.pictureInPictureActive) {
 				await this.enterPictureInPicture()
 			} else {
-				this.exitPictureInPicture()
+				this.leavePictureInPicture()
 			}
 		} catch (error) {
 			console.error("Error toggling Picture-in-Picture:", error)
